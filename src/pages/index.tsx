@@ -120,7 +120,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
               <Button 
                 size="lg" 
@@ -146,7 +146,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-24 left-0 right-0 flex justify-center"
+            className="absolute bottom-16 left-0 right-0 flex justify-center"
           >
             <div className="grid grid-cols-3 gap-8 max-w-2xl w-full px-6">
               {[
