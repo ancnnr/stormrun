@@ -45,18 +45,18 @@ export default function Home() {
         <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
           {/* Video Background */}
           <div className="absolute inset-0">
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="absolute inset-0 w-full h-full object-cover"
+            <iframe
+              className="absolute inset-0 w-full h-full pointer-events-none"
               style={{
+                width: '100vw',
+                height: '100vh',
                 filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
               }}
-            >
-              <source src="https://cdn.coverr.co/videos/coverr-woman-running-on-a-rainy-road-6166/1080p.mp4" type="video/mp4" />
-            </video>
+              src="https://www.youtube.com/embed/ZvzKuqSDyG8?autoplay=1&mute=1&loop=1&playlist=ZvzKuqSDyG8&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+              title="Background video"
+              allow="autoplay; encrypted-media"
+              allowFullScreen={false}
+            />
             <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f17]/60 via-[#0b0f17]/40 to-[#0b0f17]" />
           </div>
 
