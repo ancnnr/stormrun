@@ -146,9 +146,9 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full px-6"
+            className="absolute bottom-24 left-0 right-0 flex justify-center"
           >
-            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+            <div className="grid grid-cols-3 gap-8 max-w-2xl w-full px-6">
               {[
                 { value: "2.4M", label: "RUNNERS ACTIVE" },
                 { value: "847K", label: "KM CONQUERED" },
