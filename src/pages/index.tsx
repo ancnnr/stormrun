@@ -41,69 +41,23 @@ export default function Home() {
       </Head>
 
       <div className="bg-[#0b0f17] text-[#eaf0ff] overflow-x-hidden">
-        {/* Navigation */}
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-[#0b0f17]/80 backdrop-blur-xl border-b border-[#1a1f2e]">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-2"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-[#b18cff] to-[#93c5fd] rounded-sm" />
-              <span className="text-xl font-bold tracking-tight">STORMRUN</span>
-            </motion.div>
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="flex items-center gap-4"
-            >
-              <Button variant="ghost" className="text-[#eaf0ff] hover:text-[#b18cff]">
-                Features
-              </Button>
-              <Button variant="ghost" className="text-[#eaf0ff] hover:text-[#b18cff]">
-                Factions
-              </Button>
-              <Button className="bg-[#b18cff] hover:bg-[#9d75e6] text-[#0b0f17] font-semibold">
-                Download
-              </Button>
-            </motion.div>
-          </div>
-        </nav>
-
         {/* Hero Section */}
         <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
-          {/* Animated Background */}
+          {/* Video Background */}
           <div className="absolute inset-0">
-            <motion.div 
-              style={{ y: parallaxY }}
-              className="absolute inset-0 bg-gradient-to-b from-[#1a1f2e] via-[#0b0f17] to-[#0b0f17]"
-            />
-            <div 
-              className="absolute inset-0 opacity-30"
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
               style={{
-                backgroundImage: `url(https://images.unsplash.com/photo-1605106702734-205df224ecce?w=1920&q=80)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: 'grayscale(100%) contrast(1.2)',
+                filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
               }}
-            />
-            {/* Radar sweep effect */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              className="absolute top-1/2 left-1/2 w-[800px] h-[800px] -translate-x-1/2 -translate-y-1/2"
-              style={{
-                background: `conic-gradient(from 0deg, transparent 0%, rgba(177, 140, 255, 0.1) 10%, transparent 20%)`,
-              }}
-            />
-            {/* Grid overlay */}
-            <div 
-              className="absolute inset-0 opacity-10"
-              style={{
-                backgroundImage: `linear-gradient(rgba(177, 140, 255, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(177, 140, 255, 0.3) 1px, transparent 1px)`,
-                backgroundSize: '50px 50px',
-              }}
-            />
+            >
+              <source src="https://cdn.coverr.co/videos/coverr-woman-running-on-a-rainy-road-6166/1080p.mp4" type="video/mp4" />
+            </video>
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f17]/60 via-[#0b0f17]/40 to-[#0b0f17]" />
           </div>
 
           {/* Hero Content */}
