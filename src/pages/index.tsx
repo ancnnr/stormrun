@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Head from "next/head";
+import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { 
@@ -52,7 +53,7 @@ export default function Home() {
                 height: '100vh',
                 filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
               }}
-              src="https://www.youtube.com/embed/MuS3P9FTyk4?autoplay=1&mute=1&loop=1&playlist=MuS3P9FTyk4&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+              src="https://www.youtube.com/embed/MuS3P9FTyk4?autoplay=1&mute=1&loop=1&playlist=MuS3P9FTyk4&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&disablekb=1&fs=0&iv_load_policy=3"
               title="Background video"
               allow="autoplay; encrypted-media"
               allowFullScreen={false}
@@ -73,25 +74,40 @@ export default function Home() {
               </div>
             </motion.div>
             
-            <motion.h1
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
-              className="text-7xl md:text-8xl font-bold mb-6 tracking-tighter"
-              style={{
-                background: 'linear-gradient(to bottom, #eaf0ff, #93c5fd)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                textShadow: '0 0 80px rgba(177, 140, 255, 0.3)',
-              }}
+              className="mb-6 flex justify-center"
             >
-              OUTRUN THE STORM
-            </motion.h1>
+              <Image
+                src="https://assets.co.dev/2e3046f2-4707-4d97-af0a-c91172d86d90/stormrunlogoglow-67a324b.png"
+                alt="StormRun Logo"
+                width={600}
+                height={200}
+                className="w-full max-w-2xl h-auto"
+                priority
+              />
+            </motion.div>
             
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.4 }}
+              className="text-3xl md:text-4xl font-bold mb-4 tracking-tight"
+              style={{
+                background: 'linear-gradient(to bottom, #eaf0ff, #93c5fd)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              Outrun the storm
+            </motion.p>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
               className="text-xl md:text-2xl text-[#93c5fd] mb-12 max-w-3xl mx-auto font-light tracking-wide"
             >
               A post-apocalyptic running game where every step expands your safe zone.
