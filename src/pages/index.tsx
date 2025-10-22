@@ -52,7 +52,7 @@ export default function Home() {
                 height: '100vh',
                 filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
               }}
-              src="https://www.youtube.com/embed/ZvzKuqSDyG8?autoplay=1&mute=1&loop=1&playlist=ZvzKuqSDyG8&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+              src="https://www.youtube.com/embed/MuS3P9FTyk4?autoplay=1&mute=1&loop=1&playlist=MuS3P9FTyk4&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
               title="Background video"
               allow="autoplay; encrypted-media"
               allowFullScreen={false}
