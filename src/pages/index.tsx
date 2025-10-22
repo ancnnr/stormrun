@@ -120,7 +120,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20"
             >
               <Button 
                 size="lg" 
@@ -146,7 +146,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-20 left-0 right-0 flex justify-center py-8"
+            className="absolute bottom-12 left-0 right-0 flex justify-center py-8"
           >
             <div className="grid grid-cols-3 gap-8 max-w-2xl w-full px-6">
               {[
@@ -159,21 +159,6 @@ export default function Home() {
                   <div className="text-xs text-[#1dffee] tracking-widest">{stat.label}</div>
                 </div>
               ))}
-            </div>
-          </motion.div>
-
-          {/* Scroll Indicator */}
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2"
-          >
-            <div className="w-6 h-10 border-2 border-[#b18cff]/50 rounded-full flex items-start justify-center p-2">
-              <motion.div 
-                animate={{ y: [0, 12, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="w-1.5 h-1.5 bg-[#b18cff] rounded-full"
-              />
             </div>
           </motion.div>
         </section>
