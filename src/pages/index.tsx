@@ -107,7 +107,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
-              className="text-xl md:text-2xl text-[#1dffee] mb-12 max-w-3xl mx-auto font-light tracking-wide"
+              className="text-xl md:text-2xl text-[#1dffee] mb-8 max-w-3xl mx-auto font-light tracking-wide"
             >
               A post-apocalyptic running game where every step expands your safe zone.
             </motion.p>
@@ -116,7 +116,7 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
             >
               <Button 
                 size="lg" 
@@ -140,18 +140,20 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 grid grid-cols-3 gap-8 max-w-2xl"
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 w-full px-6"
           >
-            {[
-              { value: "2.4M", label: "RUNNERS ACTIVE" },
-              { value: "847K", label: "KM CONQUERED" },
-              { value: "12", label: "FACTIONS" },
-            ].map((stat, i) => (
-              <div key={i} className="text-center">
-                <div className="text-3xl font-bold text-[#86efac] mb-1">{stat.value}</div>
-                <div className="text-xs text-[#1dffee] tracking-widest">{stat.label}</div>
-              </div>
-            ))}
+            <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
+              {[
+                { value: "2.4M", label: "RUNNERS ACTIVE" },
+                { value: "847K", label: "KM CONQUERED" },
+                { value: "12", label: "FACTIONS" },
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-3xl font-bold text-[#86efac] mb-1">{stat.value}</div>
+                  <div className="text-xs text-[#1dffee] tracking-widest">{stat.label}</div>
+                </div>
+              ))}
+            </div>
           </motion.div>
 
           {/* Scroll Indicator */}
