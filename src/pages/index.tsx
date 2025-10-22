@@ -13,7 +13,11 @@ import {
   Shield,
   TrendingUp,
   Globe,
-  ChevronRight
+  ChevronRight,
+  Facebook,
+  Instagram,
+  Twitter,
+  MessageCircle
 } from "lucide-react";
 
 export default function Home() {
@@ -116,11 +120,12 @@ export default function Home() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8"
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
             >
               <Button 
                 size="lg" 
                 className="bg-[#b18cff] hover:bg-[#9d75e6] text-[#0b0f17] font-bold text-lg px-8 py-6 group"
+                onClick={() => window.open('https://www.figma.com/make/eKP8ERL06LrWIIn8caRlID/StormRun-App-Foundation?node-id=0-1&t=tGPJvk1y5I44mQnu-1', '_blank')}
               >
                 Download the App
                 <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
@@ -129,6 +134,7 @@ export default function Home() {
                 size="lg" 
                 variant="outline"
                 className="border-[#1dffee] text-[#1dffee] hover:bg-[#1dffee]/10 font-semibold text-lg px-8 py-6"
+                onClick={() => window.open('https://youtu.be/MuS3P9FTyk4', '_blank')}
               >
                 Watch Trailer
               </Button>
@@ -181,7 +187,7 @@ export default function Home() {
         {/* Footer */}
         <footer className="border-t border-[#1a1f2e] bg-[#0b0f17] py-12">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-[#b18cff] to-[#1dffee] rounded-sm" />
                 <div>
@@ -190,15 +196,56 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex gap-4">
-                <Button variant="outline" className="border-[#1a1f2e] hover:border-[#b18cff]">
+                <Button 
+                  variant="outline" 
+                  className="border-[#1a1f2e] hover:border-[#b18cff]"
+                  onClick={() => window.open('https://www.apple.com/app-store/', '_blank')}
+                >
                   App Store
                 </Button>
-                <Button variant="outline" className="border-[#1a1f2e] hover:border-[#b18cff]">
+                <Button 
+                  variant="outline" 
+                  className="border-[#1a1f2e] hover:border-[#b18cff]"
+                  onClick={() => window.open('https://play.google.com/store/apps?hl=en', '_blank')}
+                >
                   Google Play
                 </Button>
               </div>
             </div>
-            <div className="mt-8 pt-8 border-t border-[#1a1f2e] text-center text-sm text-[#1dffee]/60">
+            
+            {/* Social Media Icons */}
+            <div className="flex justify-center gap-6 mb-8">
+              <button
+                onClick={() => window.open('https://discord.com', '_blank')}
+                className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
+                aria-label="Discord"
+              >
+                <MessageCircle size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
+              </button>
+              <button
+                onClick={() => window.open('https://twitter.com', '_blank')}
+                className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
+                aria-label="X (Twitter)"
+              >
+                <Twitter size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
+              </button>
+              <button
+                onClick={() => window.open('https://facebook.com', '_blank')}
+                className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
+                aria-label="Facebook"
+              >
+                <Facebook size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
+              </button>
+              <button
+                onClick={() => window.open('https://instagram.com', '_blank')}
+                className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
+                aria-label="Instagram"
+              >
+                <Instagram size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
+              </button>
+            </div>
+            
+            <div className="pt-8 border-t border-[#1a1f2e] text-center text-sm text-[#1dffee]/60">
               © 2025 StormRun. All rights reserved. | Audrey AI System Active
             </div>
           </div>
