@@ -146,7 +146,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="absolute bottom-16 left-0 right-0 flex justify-center"
+            className="absolute bottom-20 left-0 right-0 flex justify-center py-8"
           >
             <div className="grid grid-cols-3 gap-8 max-w-2xl w-full px-6">
               {[
@@ -166,7 +166,7 @@ export default function Home() {
           <motion.div
             animate={{ y: [0, 10, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2"
           >
             <div className="w-6 h-10 border-2 border-[#b18cff]/50 rounded-full flex items-start justify-center p-2">
               <motion.div 
