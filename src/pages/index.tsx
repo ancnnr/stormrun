@@ -3,6 +3,7 @@ import Head from "next/head";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import StayInformedModal from "@/components/StayInformedModal";
 import { 
   Activity, 
   MapPin, 
@@ -24,6 +25,7 @@ export default function Home() {
   const { scrollYProgress } = useScroll();
   const heroRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -46,23 +48,25 @@ export default function Home() {
 
       <div className="bg-[#0b0f17] text-[#eaf0ff] overflow-x-hidden">
         {/* Hero Section */}
+
         <section ref={heroRef} className="relative h-screen flex items-center justify-center overflow-hidden">
           {/* Video Background */}
-          <div className="absolute inset-0">
-            <iframe
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{
-                width: '100vw',
-                height: '100vh',
-                filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
-              }}
-              src="https://www.youtube.com/embed/MuS3P9FTyk4?autoplay=1&mute=1&loop=1&playlist=MuS3P9FTyk4&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&disablekb=1&fs=0&iv_load_policy=3"
-              title="Background video"
-              allow="autoplay; encrypted-media"
-              allowFullScreen={false}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f17]/60 via-[#0b0f17]/40 to-[#0b0f17]" />
-          </div>
+            <div className="absolute inset-0">
+              <video
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                style={{
+                  width: '100vw',
+                  height: '100vh',
+                  filter: 'grayscale(70%) contrast(1.1) brightness(0.6)',
+                }}
+                src="/videos/stormrun_bgvideo.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#0b0f17]/60 via-[#0b0f17]/40 to-[#0b0f17]" />
+            </div>
 
           {/* Hero Content */}
           <div className="relative z-10 text-center px-6 max-w-5xl">
@@ -125,19 +129,19 @@ export default function Home() {
               <Button 
                 size="lg" 
                 className="bg-[#b18cff] hover:bg-[#9d75e6] text-[#0b0f17] font-bold text-lg px-8 py-6 group"
-                onClick={() => window.open('https://www.figma.com/make/eKP8ERL06LrWIIn8caRlID/StormRun-App-Foundation?node-id=0-1&t=tGPJvk1y5I44mQnu-1', '_blank')}
+                onClick={() => setModalOpen(true)}
               >
-                Download the App
+                Stay Informed
                 <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-              <Button 
+              {/* <Button 
                 size="lg" 
                 variant="outline"
                 className="border-[#1dffee] text-[#1dffee] hover:bg-[#1dffee]/10 font-semibold text-lg px-8 py-6"
                 onClick={() => window.open('https://youtu.be/MuS3P9FTyk4', '_blank')}
               >
                 Watch Trailer
-              </Button>
+              </Button> */}
             </motion.div>
           </div>
 
@@ -180,7 +184,7 @@ export default function Home() {
                   <div className="text-sm text-[#1dffee]">Run for survival. Build the future.</div>
                 </div>
               </div>
-              <div className="flex gap-4">
+              {/* <div className="flex gap-4">
                 <Button 
                   variant="outline" 
                   className="border-[#1a1f2e] hover:border-[#b18cff]"
@@ -195,34 +199,34 @@ export default function Home() {
                 >
                   Google Play
                 </Button>
-              </div>
+              </div> */}
             </div>
             
             {/* Social Media Icons */}
             <div className="flex justify-center gap-6 mb-8">
               <button
-                onClick={() => window.open('https://discord.com', '_blank')}
+                onClick={()=>{}}
                 className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
                 aria-label="Discord"
               >
                 <MessageCircle size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
               </button>
               <button
-                onClick={() => window.open('https://twitter.com', '_blank')}
+                onClick={()=>{}}
                 className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
                 aria-label="X (Twitter)"
               >
                 <Twitter size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
               </button>
               <button
-                onClick={() => window.open('https://facebook.com', '_blank')}
+                onClick={()=>{}}
                 className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
                 aria-label="Facebook"
               >
                 <Facebook size={20} className="text-[#1dffee] group-hover:text-[#b18cff] transition-colors" />
               </button>
               <button
-                onClick={() => window.open('https://instagram.com', '_blank')}
+                onClick={()=>{}}
                 className="w-10 h-10 rounded-sm border border-[#1a1f2e] hover:border-[#b18cff] flex items-center justify-center transition-colors group"
                 aria-label="Instagram"
               >
@@ -236,6 +240,7 @@ export default function Home() {
           </div>
         </footer>
       </div>
+      <StayInformedModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 }
