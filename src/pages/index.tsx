@@ -3,7 +3,6 @@ import Head from "next/head";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import StayInformedModal from "@/components/StayInformedModal";
 import { 
   Activity, 
   MapPin, 
@@ -18,14 +17,21 @@ import {
   Facebook,
   Instagram,
   Twitter,
-  MessageCircle
+  MessageCircle,
+  X
 } from "lucide-react";
+
+declare global {
+  interface Window {
+    ml: any;
+  }
+}
 
 export default function Home() {
   const { scrollYProgress } = useScroll();
   const heroRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [modalOpen, setModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -34,6 +40,30 @@ export default function Home() {
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
+
+  useEffect(() => {
+        // 1. Setup the MailerLite queue function
+        // This mirrors the inline script provided by MailerLite
+        if (typeof window !== 'undefined') {
+        window.ml = window.ml || function() {
+            (window.ml.q = window.ml.q || []).push(arguments);
+        };
+        
+        // 2. Set the account
+        window.ml('account', '1933719');
+        
+        // 3. Load the external script manually (Standard React approach)
+        // In a real Next.js app, you could swap this block for <Script src="..." />
+        const scriptId = 'mailerlite-script';
+        if (!document.getElementById(scriptId)) {
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.src = 'https://assets.mailerlite.com/js/universal.js';
+            script.async = true;
+            document.body.appendChild(script);
+        }
+        }
+    }, []);
 
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -200]);
 
@@ -129,21 +159,17 @@ export default function Home() {
               <Button 
                 size="lg" 
                 className="bg-[#b18cff] hover:bg-[#9d75e6] text-[#0b0f17] font-bold text-lg px-8 py-6 group"
-                onClick={() => setModalOpen(true)}
+                onClick={()=>setIsModalOpen(true)}
               >
                 Stay Informed
                 <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
-              {/* <Button 
-                size="lg" 
-                variant="outline"
-                className="border-[#1dffee] text-[#1dffee] hover:bg-[#1dffee]/10 font-semibold text-lg px-8 py-6"
-                onClick={() => window.open('https://youtu.be/MuS3P9FTyk4', '_blank')}
-              >
-                Watch Trailer
-              </Button> */}
             </motion.div>
           </div>
+
+          <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>            
+            <div className="ml-embedded" data-form="533xS0"></div>
+          </Modal>
 
           {/* Stats Bar */}
           <motion.div
@@ -240,7 +266,6 @@ export default function Home() {
           </div>
         </footer>
       </div>
-      <StayInformedModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </>
   );
 }
@@ -471,3 +496,37 @@ function FeatureCard({ feature, index }: { feature: any; index: number }) {
   );
 }
 
+
+function Modal({ isOpen, onClose, children }: {isOpen: boolean; onClose: () => void; children: React.ReactNode}) {
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center transition-all duration-300 ${
+        isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
+    >
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div className={`relative rounded-lg shadow-xl w-full max-w-lg mx-4 transform transition-all duration-300 ${
+        isOpen ? 'scale-100 translate-y-0' : 'scale-95 translate-y-4'
+      }`}>
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-300 hover:text-gray-100 transition-colors z-10"
+        >
+          <X size={20} />
+        </button>
+
+        {/* Form Container */}
+        <div className="mt-2">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
