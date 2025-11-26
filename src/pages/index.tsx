@@ -165,7 +165,7 @@ export default function Home() {
                 <ChevronRight className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </motion.div>
-          </div>
+          </div>          
 
           <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>            
             <div className="ml-embedded" data-form="533xS0"></div>
@@ -265,6 +265,10 @@ export default function Home() {
             </div>
           </div>
         </footer>
+
+        {/* MailerLite Footer Bar */}
+        <div className="ml-bar" data-form="FMwXwl"></div>
+
       </div>
     </>
   );
