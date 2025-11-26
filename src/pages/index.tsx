@@ -20,6 +20,7 @@ import {
   MessageCircle,
   X
 } from "lucide-react";
+import MailerLiteInlineBanner from "@/components/MailerLiteBanner";
 
 declare global {
   interface Window {
@@ -267,7 +268,8 @@ export default function Home() {
         </footer>
 
         {/* MailerLite Footer Bar */}
-        <div className="ml-bar" data-form="FMwXwl"></div>
+        {/* <div className="ml-bar" data-form="FMwXwl"></div> */}
+        <MailerLiteInlineBanner initiallyVisible={true} />
 
       </div>
     </>
