@@ -268,9 +268,7 @@ export default function Home() {
         </footer>
 
         {/* MailerLite Footer Bar */}
-        {/* <div className="ml-bar" data-form="FMwXwl"></div> */}
         <MailerLiteInlineBanner />
-
       </div>
     </>
   );
