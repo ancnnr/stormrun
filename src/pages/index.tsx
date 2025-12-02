@@ -74,7 +74,7 @@ export default function Home() {
         <title>StormRun - Outrun the Storm</title>
         <meta name="description" content="A post-apocalyptic running game where every step expands your safe zone." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" href="/stormrunlogo.ico" />
       </Head>
 
       <div className="bg-[#0b0f17] text-[#eaf0ff] overflow-x-hidden">
@@ -269,7 +269,7 @@ export default function Home() {
 
         {/* MailerLite Footer Bar */}
         {/* <div className="ml-bar" data-form="FMwXwl"></div> */}
-        <MailerLiteInlineBanner initiallyVisible={true} />
+        <MailerLiteInlineBanner />
 
       </div>
     </>

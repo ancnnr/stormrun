@@ -5,6 +5,7 @@ type Props = {
   initiallyVisible?: boolean;
   onSuccess?: () => void;
   className?: string;
+  scrollThreshold?: number; //px scrolled before banner shows
 };
 
 function generateGuid() {
@@ -34,6 +35,7 @@ export default function MailerLiteInlineBanner({
   initiallyVisible = false,
   onSuccess,
   className = "",
+  scrollThreshold = 200,
 }: Props) {
   const [visible, setVisible] = useState(initiallyVisible);
   const [email, setEmail] = useState("");
@@ -57,6 +59,28 @@ export default function MailerLiteInlineBanner({
       }
     }
   }, []);
+
+   // show banner once user scrolls past threshold (if not initially visible)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (initiallyVisible) return;
+
+    let fired = false;
+    const onScroll = () => {
+      if (fired) return;
+      if (window.scrollY >= scrollThreshold) {
+        fired = true;
+        setVisible(true);
+        window.removeEventListener("scroll", onScroll);
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // also check on mount in case page was already scrolled
+    onScroll();
+
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [initiallyVisible, scrollThreshold]);
 
   const validateEmail = (v: string) => {
     const re = /^([a-zA-Z0-9_.+-])+@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]){2,40}$/;
@@ -145,10 +169,10 @@ if (success) {
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-50 bg-[#12151e] text-white border-t border-[#a782f9]/30 p-4 md:p-6 ${className}`}
-      style={{ display: visible ? "block" : "none" }}
+      className={`fixed inset-x-0 bottom-0 z-50 bg-[#12151e] text-white border-t border-[#a782f9]/30 p-4 md:p-6 transform will-change-transform transition-transform transition-opacity duration-500 ease-out ${visible ? "translate-y-0 opacity-100 pointer-events-auto" : "translate-y-full opacity-0 pointer-events-none"} ${className}`}
       role="region"
       aria-label="Subscribe banner"
+      aria-hidden={!visible}
     >
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-4 justify-between">
         <div>
