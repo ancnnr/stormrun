@@ -26,6 +26,11 @@ export default function ManageLoginPage() {
   async function onSubmit(values: FormData) {
     setError(null);
     setLoading(true);
+    if (!API_BASE) {
+      setError('API URL not configured. Check NEXT_PUBLIC_STORMRUN_API_URL.');
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
