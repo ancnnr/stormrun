@@ -7,7 +7,6 @@ const navLinks = [
   { href: '/manage/dashboard', label: 'Dashboard' },
   { href: '/manage/missions', label: 'Missions' },
   { href: '/manage/encouragement', label: 'Encouragement Audio' },
-  { href: '/manage/directional', label: 'Directional Audio' },
 ];
 
 export function ManageLayout({ children }: { children: ReactNode }) {
