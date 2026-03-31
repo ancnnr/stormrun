@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AudioEvent {
   id: string;
@@ -20,6 +21,7 @@ interface AudioEvent {
   audio_url: string;
   trigger_type: string;
   trigger_value: number | null;
+  random_max_pct: number | null;
   label: string | null;
   transcript: string | null;
 }
@@ -29,6 +31,7 @@ const eventSchema = z.object({
   audio_url: z.string().min(1, 'Audio URL required'),
   trigger_type: z.string().min(1, 'Trigger type required'),
   trigger_value: z.coerce.number().optional(),
+  random_max_pct: z.coerce.number().optional(),
   label: z.string().optional(),
   transcript: z.string().optional(),
 });
@@ -49,6 +52,7 @@ export default function MissionAudioPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<EventForm>({ resolver: zodResolver(eventSchema) });
+  const watchedTriggerType = form.watch('trigger_type');
 
   async function load() {
     if (!missionId) return;
@@ -56,8 +60,8 @@ export default function MissionAudioPage() {
     try {
       const data = await apiFetch<AudioEvent[]>(`/api/admin/missions/${missionId}/audio`);
       setEvents(data);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -69,7 +73,7 @@ export default function MissionAudioPage() {
 
   function openCreate() {
     setEditing(null);
-    form.reset({ sequence: events.length, audio_url: '', trigger_type: 'route_start', trigger_value: undefined, label: '', transcript: '' });
+    form.reset({ sequence: events.length, audio_url: '', trigger_type: 'route_start', trigger_value: undefined, random_max_pct: undefined, label: '', transcript: '' });
     setDialogOpen(true);
   }
 
@@ -80,6 +84,7 @@ export default function MissionAudioPage() {
       audio_url: e.audio_url,
       trigger_type: e.trigger_type,
       trigger_value: e.trigger_value ?? undefined,
+      random_max_pct: e.random_max_pct ?? undefined,
       label: e.label ?? '',
       transcript: e.transcript ?? '',
     });
@@ -103,8 +108,8 @@ export default function MissionAudioPage() {
       }
       setDialogOpen(false);
       load();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setSaving(false);
     }
@@ -116,8 +121,8 @@ export default function MissionAudioPage() {
       await apiFetch(`/api/admin/audio-events/${deleteTarget.id}`, { method: 'DELETE' });
       setDeleteTarget(null);
       load();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
     }
   }
 
@@ -131,8 +136,8 @@ export default function MissionAudioPage() {
       fd.append('mission_id', missionId);
       const result = await apiUpload<{ audioUrl: string }>('/api/admin/audio-events/upload', fd);
       form.setValue('audio_url', result.audioUrl);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -175,7 +180,11 @@ export default function MissionAudioPage() {
                 <TableCell>{ev.sequence}</TableCell>
                 <TableCell>{ev.label ?? '—'}</TableCell>
                 <TableCell>{ev.trigger_type}</TableCell>
-                <TableCell>{ev.trigger_value ?? '—'}</TableCell>
+                <TableCell>
+                  {ev.trigger_type === 'random'
+                    ? `${ev.trigger_value ?? 0}–${ev.random_max_pct ?? 1}`
+                    : (ev.trigger_value ?? '—')}
+                </TableCell>
                 <TableCell>
                   {ev.audio_url && (
                     <audio controls src={ev.audio_url} className="h-8 w-48" />
@@ -214,17 +223,47 @@ export default function MissionAudioPage() {
                 <FormField control={form.control} name="trigger_type" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Trigger Type</FormLabel>
-                    <FormControl><Input placeholder="route_start, distance_pct, route_end" {...field} /></FormControl>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select trigger type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="route_start">Route Start</SelectItem>
+                        <SelectItem value="distance_pct">Distance %</SelectItem>
+                        <SelectItem value="route_end">Route End</SelectItem>
+                        <SelectItem value="random">Random</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
-                <FormField control={form.control} name="trigger_value" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trigger Value</FormLabel>
-                    <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                {(watchedTriggerType === 'distance_pct' || watchedTriggerType === 'random') && (
+                  <FormField control={form.control} name="trigger_value" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {watchedTriggerType === 'random' ? 'Min % (0–1)' : 'Distance % (0–1)'}
+                      </FormLabel>
+                      <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+                {watchedTriggerType === 'random' && (
+                  <FormField control={form.control} name="random_max_pct" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max % (0–1)</FormLabel>
+                      <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+                {watchedTriggerType === 'random' && (
+                  <p className="col-span-2 text-xs text-muted-foreground">
+                    Event fires at a random point between Min % and Max % of the run
+                  </p>
+                )}
                 <FormField control={form.control} name="label" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Label</FormLabel>
