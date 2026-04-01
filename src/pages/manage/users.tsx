@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 
 interface UserRow {
@@ -64,6 +65,33 @@ interface UserMission {
   completedAt: string | null;
 }
 
+interface InventoryItem {
+  itemId: string;
+  name: string;
+  category: string;
+  rarity: string;
+  icon: string | null;
+  quantity: number;
+  unlocked: boolean;
+}
+
+interface UserInventory {
+  userId: string;
+  username: string;
+  gold: number;
+  inventory: InventoryItem[];
+  loadout: {
+    equipmentIds: string[];
+    consumableIds: string[];
+  };
+}
+
+interface CatalogItem {
+  id: string;
+  name: string;
+  category: string;
+}
+
 const ROLES = ['user', 'test', 'manager', 'admin'];
 
 const ROLE_COLORS: Record<string, string> = {
@@ -71,6 +99,14 @@ const ROLE_COLORS: Record<string, string> = {
   manager: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   test: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   user: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+};
+
+const RARITY_COLORS: Record<string, string> = {
+  common: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+  uncommon: 'bg-green-500/20 text-green-400 border-green-500/30',
+  rare: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  epic: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+  legendary: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
 };
 
 function formatDistance(km: number): string {
@@ -116,6 +152,19 @@ export default function UsersPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [updatingRole, setUpdatingRole] = useState(false);
 
+  // Inventory tab state
+  const [userInventory, setUserInventory] = useState<UserInventory | null>(null);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [grantItemId, setGrantItemId] = useState('');
+  const [grantQty, setGrantQty] = useState('1');
+  const [granting, setGranting] = useState(false);
+  const [goldAmount, setGoldAmount] = useState('');
+  const [goldReason, setGoldReason] = useState('');
+  const [adjustingGold, setAdjustingGold] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
   const loadUsers = useCallback(async (p: number, q: string) => {
     setLoading(true);
     try {
@@ -132,7 +181,10 @@ export default function UsersPage() {
   }, [toast]);
 
   useEffect(() => {
-    if (ready) loadUsers(page, search);
+    if (ready) {
+      loadUsers(page, search);
+      apiFetch<CatalogItem[]>('/api/admin/items').then(setCatalogItems).catch(() => {/* non-fatal */});
+    }
   }, [ready, page, search, loadUsers]);
 
   function handleSearch() {
@@ -148,6 +200,7 @@ export default function UsersPage() {
     setSheetOpen(true);
     setDetailLoading(true);
     setUserMissions([]);
+    setUserInventory(null);
     try {
       const [detail, missions] = await Promise.all([
         apiFetch<UserDetail>(`/api/admin/users/${user.id}`),
@@ -160,6 +213,19 @@ export default function UsersPage() {
       setSheetOpen(false);
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function loadInventory(userId: string) {
+    if (userInventory?.userId === userId) return;
+    setInventoryLoading(true);
+    try {
+      const data = await apiFetch<UserInventory>(`/api/admin/users/${userId}/inventory`);
+      setUserInventory(data);
+    } catch (e: unknown) {
+      toast({ title: 'Error loading inventory', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setInventoryLoading(false);
     }
   }
 
@@ -178,6 +244,61 @@ export default function UsersPage() {
       toast({ title: 'Error', description: e instanceof Error ? e.message : 'Role update failed', variant: 'destructive' });
     } finally {
       setUpdatingRole(false);
+    }
+  }
+
+  async function grantItem() {
+    if (!selectedUser || !grantItemId) return;
+    setGranting(true);
+    try {
+      await apiFetch(`/api/admin/users/${selectedUser.id}/inventory/grant`, {
+        method: 'POST',
+        body: JSON.stringify({ item_id: grantItemId, quantity: parseInt(grantQty, 10) || 1 }),
+      });
+      toast({ title: 'Item granted' });
+      setGrantItemId('');
+      setGrantQty('1');
+      setUserInventory(null); // force reload
+      await loadInventory(selectedUser.id);
+    } catch (e: unknown) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Grant failed', variant: 'destructive' });
+    } finally {
+      setGranting(false);
+    }
+  }
+
+  async function adjustGold() {
+    if (!selectedUser || !goldAmount) return;
+    setAdjustingGold(true);
+    try {
+      const result = await apiFetch<{ previousGold: number; newGold: number }>(`/api/admin/users/${selectedUser.id}/gold`, {
+        method: 'PUT',
+        body: JSON.stringify({ amount: parseInt(goldAmount, 10), reason: goldReason || null }),
+      });
+      toast({ title: 'Gold adjusted', description: `${result.previousGold} → ${result.newGold}` });
+      setGoldAmount('');
+      setGoldReason('');
+      setUserInventory((prev) => prev ? { ...prev, gold: result.newGold } : prev);
+    } catch (e: unknown) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Gold adjustment failed', variant: 'destructive' });
+    } finally {
+      setAdjustingGold(false);
+    }
+  }
+
+  async function clearInventory() {
+    if (!selectedUser) return;
+    setClearing(true);
+    try {
+      await apiFetch(`/api/admin/users/${selectedUser.id}/inventory`, { method: 'DELETE' });
+      toast({ title: 'Inventory cleared', description: `${selectedUser.username}'s inventory has been wiped.` });
+      setClearConfirmOpen(false);
+      setUserInventory(null);
+      await loadInventory(selectedUser.id);
+    } catch (e: unknown) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Clear failed', variant: 'destructive' });
+    } finally {
+      setClearing(false);
     }
   }
 
@@ -284,11 +405,12 @@ export default function UsersPage() {
                 <p className="text-sm text-muted-foreground">Joined {formatDate(selectedUser.createdAt)}</p>
               </SheetHeader>
 
-              <Tabs defaultValue="profile">
+              <Tabs defaultValue="profile" onValueChange={(v) => { if (v === 'inventory' && selectedUser) loadInventory(selectedUser.id); }}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="stats">Run Stats</TabsTrigger>
                   <TabsTrigger value="missions">Missions ({userMissions.length})</TabsTrigger>
+                  <TabsTrigger value="inventory">Inventory</TabsTrigger>
                   <TabsTrigger value="role">Role</TabsTrigger>
                 </TabsList>
 
@@ -353,6 +475,141 @@ export default function UsersPage() {
                   )}
                 </TabsContent>
 
+                <TabsContent value="inventory">
+                  {inventoryLoading && <p className="text-muted-foreground text-sm">Loading inventory…</p>}
+                  {!inventoryLoading && userInventory && (
+                    <div className="space-y-4">
+                      {/* Gold balance */}
+                      <div className="flex items-center justify-between rounded-md border p-3">
+                        <span className="text-sm font-medium">Gold Balance</span>
+                        <span className="text-lg font-bold text-yellow-500">{userInventory.gold.toLocaleString()} G</span>
+                      </div>
+
+                      {/* Loadout summary */}
+                      {(userInventory.loadout.equipmentIds.length > 0 || userInventory.loadout.consumableIds.length > 0) && (
+                        <div className="rounded-md border p-3 space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Active Loadout</p>
+                          <p className="text-sm">Equipment: {userInventory.loadout.equipmentIds.join(', ') || 'none'}</p>
+                          <p className="text-sm">Consumables: {userInventory.loadout.consumableIds.join(', ') || 'none'}</p>
+                        </div>
+                      )}
+
+                      {/* Inventory items */}
+                      {userInventory.inventory.length > 0 ? (
+                        <div className="rounded-md border divide-y">
+                          {userInventory.inventory.map((item) => (
+                            <div key={item.itemId} className="flex items-center justify-between px-3 py-2 text-sm">
+                              <div>
+                                <p className="font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground capitalize">{item.category}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${RARITY_COLORS[item.rarity] ?? RARITY_COLORS.common}`}>
+                                  {item.rarity}
+                                </span>
+                                {item.quantity > 1 && (
+                                  <span className="text-muted-foreground text-xs">×{item.quantity}</span>
+                                )}
+                                {userInventory.loadout.equipmentIds.includes(item.itemId) && (
+                                  <Badge variant="default" className="text-xs">equipped</Badge>
+                                )}
+                                {userInventory.loadout.consumableIds.includes(item.itemId) && (
+                                  <Badge variant="secondary" className="text-xs">in loadout</Badge>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No items in inventory.</p>
+                      )}
+
+                      {/* Grant item */}
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Grant Item</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex gap-2 items-end">
+                            <div className="flex-1 space-y-1">
+                              <label className="text-xs text-muted-foreground">Item</label>
+                              <Select value={grantItemId} onValueChange={setGrantItemId}>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select item…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {catalogItems.map((item) => (
+                                    <SelectItem key={item.id} value={item.id}>
+                                      {item.name}
+                                      <span className="ml-1 text-xs text-muted-foreground">({item.category})</span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="w-20 space-y-1">
+                              <label className="text-xs text-muted-foreground">Qty</label>
+                              <Input type="number" min="1" value={grantQty} onChange={(e) => setGrantQty(e.target.value)} />
+                            </div>
+                            <Button onClick={grantItem} disabled={granting || !grantItemId}>
+                              {granting ? 'Granting…' : 'Grant'}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Adjust gold */}
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base">Adjust Gold</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex gap-2 items-end">
+                            <div className="space-y-1 w-28">
+                              <label className="text-xs text-muted-foreground">Amount (+/−)</label>
+                              <Input
+                                type="number"
+                                value={goldAmount}
+                                onChange={(e) => setGoldAmount(e.target.value)}
+                                placeholder="e.g. 50 or -10"
+                              />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                              <label className="text-xs text-muted-foreground">Reason (optional)</label>
+                              <Input
+                                value={goldReason}
+                                onChange={(e) => setGoldReason(e.target.value)}
+                                placeholder="e.g. Compensation for bug"
+                              />
+                            </div>
+                            <Button onClick={adjustGold} disabled={adjustingGold || !goldAmount} variant="outline">
+                              {adjustingGold ? 'Updating…' : 'Apply'}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Danger zone */}
+                      <Card className="border-destructive/50">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-base text-destructive">Danger Zone</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm font-medium">Clear Inventory</p>
+                              <p className="text-xs text-muted-foreground">Removes all items and resets the loadout.</p>
+                            </div>
+                            <Button variant="destructive" size="sm" onClick={() => setClearConfirmOpen(true)}>
+                              Clear
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </TabsContent>
+
                 <TabsContent value="role">
                   <Card>
                     <CardHeader>
@@ -393,6 +650,27 @@ export default function UsersPage() {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Inventory?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove ALL items from <strong>{selectedUser?.username}</strong>&apos;s inventory and reset their loadout. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={clearInventory}
+              disabled={clearing}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {clearing ? 'Clearing…' : 'Clear Inventory'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ManageLayout>
   );
 }

@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -24,7 +26,26 @@ interface Mission {
   estimated_distance: number | null;
   is_priority: boolean;
   sort_order: number;
+  rewards: MissionRewards | null;
   created_at: string;
+}
+
+interface MissionRewards {
+  xp?: number;
+  gold?: number;
+  territory?: number;
+  loot?: LootEntry[];
+}
+
+interface LootEntry {
+  id: string;
+  quantity: number;
+}
+
+interface CatalogItem {
+  id: string;
+  name: string;
+  category: string;
 }
 
 const missionSchema = z.object({
@@ -51,6 +72,15 @@ export default function MissionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Mission | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Rewards state (managed outside react-hook-form due to nested complexity)
+  const [rewardsXp, setRewardsXp] = useState('0');
+  const [rewardsGold, setRewardsGold] = useState('0');
+  const [rewardsTerritory, setRewardsTerritory] = useState('0');
+  const [rewardsLoot, setRewardsLoot] = useState<LootEntry[]>([]);
+  const [newLootItemId, setNewLootItemId] = useState('');
+  const [newLootQty, setNewLootQty] = useState('1');
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+
   const form = useForm<MissionForm>({ resolver: zodResolver(missionSchema) });
 
   async function load() {
@@ -66,12 +96,25 @@ export default function MissionsPage() {
   }
 
   useEffect(() => {
-    if (ready) load();
+    if (ready) {
+      load();
+      apiFetch<CatalogItem[]>('/api/admin/items')
+        .then(setCatalogItems)
+        .catch(() => {/* non-fatal */});
+    }
   }, [ready]);
+
+  function parseRewards(rewards: MissionRewards | null) {
+    setRewardsXp(String(rewards?.xp ?? 0));
+    setRewardsGold(String(rewards?.gold ?? 0));
+    setRewardsTerritory(String(rewards?.territory ?? 0));
+    setRewardsLoot(rewards?.loot ?? []);
+  }
 
   function openCreate() {
     setEditing(null);
     form.reset({ type: '', title: '', description: '', difficulty: '', estimated_time: '', sort_order: 0, is_priority: false });
+    parseRewards(null);
     setDialogOpen(true);
   }
 
@@ -87,22 +130,51 @@ export default function MissionsPage() {
       is_priority: m.is_priority,
       sort_order: m.sort_order,
     });
+    parseRewards(m.rewards);
     setDialogOpen(true);
+  }
+
+  function addLootEntry() {
+    if (!newLootItemId) return;
+    const qty = parseInt(newLootQty, 10) || 1;
+    setRewardsLoot((prev) => {
+      const existing = prev.find((l) => l.id === newLootItemId);
+      if (existing) {
+        return prev.map((l) => l.id === newLootItemId ? { ...l, quantity: l.quantity + qty } : l);
+      }
+      return [...prev, { id: newLootItemId, quantity: qty }];
+    });
+    setNewLootItemId('');
+    setNewLootQty('1');
+  }
+
+  function removeLootEntry(itemId: string) {
+    setRewardsLoot((prev) => prev.filter((l) => l.id !== itemId));
   }
 
   async function onSubmit(values: MissionForm) {
     setSaving(true);
     try {
+      const payload = {
+        ...values,
+        rewards: {
+          xp: parseInt(rewardsXp, 10) || 0,
+          gold: parseInt(rewardsGold, 10) || 0,
+          territory: parseFloat(rewardsTerritory) || 0,
+          loot: rewardsLoot,
+        },
+      };
+
       if (editing) {
         await apiFetch(`/api/admin/missions/${editing.id}`, {
           method: 'PUT',
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
         toast({ title: 'Mission updated' });
       } else {
         await apiFetch('/api/admin/missions', {
           method: 'POST',
-          body: JSON.stringify(values),
+          body: JSON.stringify(payload),
         });
         toast({ title: 'Mission created' });
       }
@@ -184,71 +256,158 @@ export default function MissionsPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? 'Edit Mission' : 'Create Mission'}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <FormField control={form.control} name="title" render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Title</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="type" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="difficulty" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Difficulty</FormLabel>
-                    <FormControl><Input {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="estimated_time" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Est. Time</FormLabel>
-                    <FormControl><Input placeholder="e.g. 30 min" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="estimated_distance" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Est. Distance (km)</FormLabel>
-                    <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="sort_order" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Sort Order</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="is_priority" render={({ field }) => (
-                  <FormItem className="flex items-center gap-2 pt-6">
-                    <FormControl>
-                      <input type="checkbox" checked={field.value} onChange={field.onChange} className="w-4 h-4" />
-                    </FormControl>
-                    <FormLabel className="!mt-0">Priority</FormLabel>
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Description</FormLabel>
-                    <FormControl><textarea {...field} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Tabs defaultValue="details">
+                <TabsList>
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="rewards">Rewards</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="details" className="pt-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField control={form.control} name="title" render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Title</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="difficulty" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Difficulty</FormLabel>
+                        <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="estimated_time" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Est. Time</FormLabel>
+                        <FormControl><Input placeholder="e.g. 30 min" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="estimated_distance" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Est. Distance (km)</FormLabel>
+                        <FormControl><Input type="number" step="0.1" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="sort_order" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Sort Order</FormLabel>
+                        <FormControl><Input type="number" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="is_priority" render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 pt-6">
+                        <FormControl>
+                          <input type="checkbox" checked={field.value} onChange={field.onChange} className="w-4 h-4" />
+                        </FormControl>
+                        <FormLabel className="!mt-0">Priority</FormLabel>
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                      <FormItem className="col-span-2">
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <textarea {...field} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="rewards" className="pt-3 space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">XP</label>
+                      <Input type="number" min="0" value={rewardsXp} onChange={(e) => setRewardsXp(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Gold</label>
+                      <Input type="number" min="0" value={rewardsGold} onChange={(e) => setRewardsGold(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Territory (km²)</label>
+                      <Input type="number" min="0" step="0.1" value={rewardsTerritory} onChange={(e) => setRewardsTerritory(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Loot Drops</label>
+
+                    {rewardsLoot.length > 0 && (
+                      <div className="rounded-md border divide-y mb-2">
+                        {rewardsLoot.map((entry) => {
+                          const item = catalogItems.find((i) => i.id === entry.id);
+                          return (
+                            <div key={entry.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                              <span className="font-medium">{item?.name ?? entry.id}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-muted-foreground">×{entry.quantity}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                                  onClick={() => removeLootEntry(entry.id)}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-xs text-muted-foreground">Item</label>
+                        <Select value={newLootItemId} onValueChange={setNewLootItemId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select item…" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {catalogItems.map((item) => (
+                              <SelectItem key={item.id} value={item.id}>
+                                {item.name}
+                                <span className="ml-1 text-xs text-muted-foreground">({item.category})</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="w-20 space-y-1">
+                        <label className="text-xs text-muted-foreground">Qty</label>
+                        <Input type="number" min="1" value={newLootQty} onChange={(e) => setNewLootQty(e.target.value)} />
+                      </div>
+                      <Button type="button" variant="outline" onClick={addLootEntry} disabled={!newLootItemId}>
+                        Add
+                      </Button>
+                    </div>
+                    {catalogItems.length === 0 && (
+                      <p className="text-xs text-muted-foreground">No items in catalog. Add items first via the Item Catalog page.</p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button>

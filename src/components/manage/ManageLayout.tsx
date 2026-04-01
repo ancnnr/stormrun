@@ -7,6 +7,9 @@ const navLinks = [
   { href: '/manage/dashboard', label: 'Dashboard' },
   { href: '/manage/missions', label: 'Missions' },
   { href: '/manage/users', label: 'Users' },
+  { href: '/manage/items', label: 'Items' },
+  { href: '/manage/items/balance', label: 'Item Balance' },
+  { href: '/manage/bulk-grant', label: 'Bulk Grant' },
   { href: '/manage/encouragement', label: 'Encouragement Audio' },
   { href: '/manage/analytics', label: 'Geo Analytics' },
 ];
