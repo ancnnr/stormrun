@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 const navLinks = [
   { href: '/manage/dashboard', label: 'Dashboard' },
   { href: '/manage/missions', label: 'Missions' },
+  { href: '/manage/users', label: 'Users' },
   { href: '/manage/encouragement', label: 'Encouragement Audio' },
+  { href: '/manage/analytics', label: 'Geo Analytics' },
 ];
 
 export function ManageLayout({ children }: { children: ReactNode }) {

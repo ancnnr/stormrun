@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Mission {
   id: string;
@@ -40,6 +41,7 @@ type MissionForm = z.infer<typeof missionSchema>;
 
 export default function MissionsPage() {
   const { ready } = useManageAuth();
+  const { toast } = useToast();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function MissionsPage() {
   const [editing, setEditing] = useState<Mission | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Mission | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const form = useForm<MissionForm>({ resolver: zodResolver(missionSchema) });
 
@@ -55,8 +58,8 @@ export default function MissionsPage() {
     try {
       const data = await apiFetch<Mission[]>('/api/admin/missions');
       setMissions(data);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load missions');
     } finally {
       setLoading(false);
     }
@@ -90,24 +93,43 @@ export default function MissionsPage() {
   async function onSubmit(values: MissionForm) {
     setSaving(true);
     try {
-      const payload = { ...values };
       if (editing) {
         await apiFetch(`/api/admin/missions/${editing.id}`, {
           method: 'PUT',
-          body: JSON.stringify(payload),
+          body: JSON.stringify(values),
         });
+        toast({ title: 'Mission updated' });
       } else {
         await apiFetch('/api/admin/missions', {
           method: 'POST',
-          body: JSON.stringify(payload),
+          body: JSON.stringify(values),
         });
+        toast({ title: 'Mission created' });
       }
       setDialogOpen(false);
       load();
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Save failed';
+      setError(msg);
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await apiFetch(`/api/admin/missions/${deleteTarget.id}`, { method: 'DELETE' });
+      toast({ title: 'Mission deleted', description: deleteTarget.title });
+      setDeleteTarget(null);
+      load();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Delete failed';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -148,6 +170,7 @@ export default function MissionsPage() {
                   <Link href={`/manage/mission-audio?id=${m.id}`}>
                     <Button variant="outline" size="sm">Audio</Button>
                   </Link>
+                  <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(m)}>Delete</Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -234,6 +257,27 @@ export default function MissionsPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Mission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &quot;{deleteTarget?.title}&quot; and all its audio events. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </ManageLayout>
   );
 }
