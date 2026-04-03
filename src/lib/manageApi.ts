@@ -73,6 +73,116 @@ export async function simulateMission(
   });
 }
 
+// ── Programs API ──────────────────────────────────────────────────────────────
+
+export interface TimelineOption {
+  weeks: number;
+  label: string;
+  sessionsPerWeek: number;
+}
+
+export interface Program {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  long_description: string | null;
+  category: string;
+  difficulty: string;
+  icon: string | null;
+  cover_image_url: string | null;
+  expected_outcomes: string[] | null;
+  timeline_options: TimelineOption[];
+  default_sessions_per_week: number;
+  status: string;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ProgramMission {
+  id: string;
+  program_id: string;
+  mission_id: string;
+  week_number: number;
+  day_in_week: number;
+  sort_order: number;
+  is_rest_day: boolean;
+  intervals: IntervalStep[] | null;
+  timeline_week_mapping: Record<string, number | null>;
+  missionTitle: string;
+  missionType: string;
+  missionDifficulty: string | null;
+  locomotionType: string | null;
+  created_at: string;
+}
+
+export interface IntervalStep {
+  action: 'walk' | 'run';
+  durationSec: number;
+  label?: string;
+}
+
+export async function listPrograms(): Promise<Program[]> {
+  return apiFetch<Program[]>('/api/admin/programs');
+}
+
+export async function createProgram(data: Omit<Program, 'id' | 'created_at'>): Promise<Program> {
+  return apiFetch<Program>('/api/admin/programs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgram(id: string, data: Partial<Program>): Promise<Program> {
+  return apiFetch<Program>(`/api/admin/programs/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProgram(id: string): Promise<void> {
+  await apiFetch<void>(`/api/admin/programs/${id}`, { method: 'DELETE' });
+}
+
+export async function listProgramMissions(programId: string): Promise<ProgramMission[]> {
+  return apiFetch<ProgramMission[]>(`/api/admin/programs/${programId}/missions`);
+}
+
+export async function addProgramMission(
+  programId: string,
+  data: Omit<ProgramMission, 'id' | 'program_id' | 'created_at' | 'missionTitle' | 'missionType' | 'missionDifficulty' | 'locomotionType'>
+): Promise<ProgramMission> {
+  return apiFetch<ProgramMission>(`/api/admin/programs/${programId}/missions`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateProgramMission(
+  programId: string,
+  pmId: string,
+  data: Partial<ProgramMission>
+): Promise<ProgramMission> {
+  return apiFetch<ProgramMission>(`/api/admin/programs/${programId}/missions/${pmId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteProgramMission(programId: string, pmId: string): Promise<void> {
+  await apiFetch<void>(`/api/admin/programs/${programId}/missions/${pmId}`, { method: 'DELETE' });
+}
+
+export async function reorderProgramMissions(
+  programId: string,
+  missions: { id: string; sort_order: number; week_number?: number; day_in_week?: number }[]
+): Promise<void> {
+  await apiFetch<void>(`/api/admin/programs/${programId}/missions/reorder`, {
+    method: 'PUT',
+    body: JSON.stringify({ missions }),
+  });
+}
+
 export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
   const token = sessionStorage.getItem('sr_token');
   const res = await fetch(API_BASE + path, {

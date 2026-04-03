@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 const navLinks = [
   { href: '/manage/dashboard', label: 'Dashboard' },
   { href: '/manage/missions', label: 'Missions' },
+  { href: '/manage/programs', label: 'Programs' },
   { href: '/manage/users', label: 'Users' },
   { href: '/manage/items', label: 'Items' },
   { href: '/manage/items/balance', label: 'Item Balance' },
