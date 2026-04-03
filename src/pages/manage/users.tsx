@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { ManageLayout } from '@/components/manage/ManageLayout';
 import { useManageAuth } from '@/hooks/useManageAuth';
-import { apiFetch } from '@/lib/manageApi';
+import { apiFetch, seedProfile, simulateMission, SimulateResult } from '@/lib/manageApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -92,6 +93,22 @@ interface CatalogItem {
   category: string;
 }
 
+interface AdminMission {
+  id: string;
+  title: string;
+  difficulty: string;
+  estimated_distance: number;
+  status: string;
+}
+
+type SimStatus = 'pending' | 'running' | 'done' | 'error';
+interface MissionSimState {
+  mission: AdminMission;
+  status: SimStatus;
+  result?: SimulateResult;
+  error?: string;
+}
+
 const ROLES = ['user', 'test', 'manager', 'admin'];
 
 const ROLE_COLORS: Record<string, string> = {
@@ -164,6 +181,24 @@ export default function UsersPage() {
   const [adjustingGold, setAdjustingGold] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+
+  // Seed Data tab state
+  const [seedMissions, setSeedMissions] = useState<AdminMission[]>([]);
+  const [seedMissionsLoading, setSeedMissionsLoading] = useState(false);
+  const [selectedMissionIds, setSelectedMissionIds] = useState<Set<string>>(new Set());
+  const [shelterLat, setShelterLat] = useState('44.6488');
+  const [shelterLng, setShelterLng] = useState('-63.5752');
+  const [shelterName, setShelterName] = useState('Halifax Downtown');
+  const [vitalsAge, setVitalsAge] = useState('28');
+  const [vitalsGender, setVitalsGender] = useState('male');
+  const [vitalsHeight, setVitalsHeight] = useState('178');
+  const [vitalsWeight, setVitalsWeight] = useState('75');
+  const [vitalsExperience, setVitalsExperience] = useState('intermediate');
+  const [vitalsWeeklyGoal, setVitalsWeeklyGoal] = useState('4');
+  const [seedPace, setSeedPace] = useState('6.2');
+  const [simStates, setSimStates] = useState<MissionSimState[]>([]);
+  const [simRunning, setSimRunning] = useState(false);
+  const [applyingProfile, setApplyingProfile] = useState(false);
 
   const loadUsers = useCallback(async (p: number, q: string) => {
     setLoading(true);
@@ -302,6 +337,97 @@ export default function UsersPage() {
     }
   }
 
+  async function loadSeedMissions() {
+    if (seedMissions.length > 0) return;
+    setSeedMissionsLoading(true);
+    try {
+      const data = await apiFetch<AdminMission[]>('/api/admin/missions');
+      const published = data.filter((m) => m.status === 'published');
+      setSeedMissions(published);
+      setSelectedMissionIds(new Set(published.map((m) => m.id)));
+    } catch (e: unknown) {
+      toast({ title: 'Error loading missions', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setSeedMissionsLoading(false);
+    }
+  }
+
+  function toggleMission(id: string) {
+    setSelectedMissionIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function applyProfileSeed() {
+    if (!selectedUser) return;
+    setApplyingProfile(true);
+    try {
+      await seedProfile(selectedUser.id, {
+        shelter_lat: parseFloat(shelterLat),
+        shelter_lng: parseFloat(shelterLng),
+        shelter_name: shelterName,
+        vitals_age: parseInt(vitalsAge, 10) || undefined,
+        vitals_gender: vitalsGender || undefined,
+        vitals_height: parseFloat(vitalsHeight) || undefined,
+        vitals_weight: parseFloat(vitalsWeight) || undefined,
+        vitals_height_unit: 'cm',
+        vitals_weight_unit: 'kg',
+        vitals_experience_level: vitalsExperience || undefined,
+        vitals_weekly_goal: parseInt(vitalsWeeklyGoal, 10) || undefined,
+      });
+      toast({ title: 'Profile updated', description: `Shelter and vitals set for ${selectedUser.username}` });
+    } catch (e: unknown) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Profile update failed', variant: 'destructive' });
+    } finally {
+      setApplyingProfile(false);
+    }
+  }
+
+  async function runSimulation() {
+    if (!selectedUser || simRunning) return;
+    const toSimulate = seedMissions.filter((m) => selectedMissionIds.has(m.id));
+    if (toSimulate.length === 0) return;
+
+    const lat = parseFloat(shelterLat);
+    const lng = parseFloat(shelterLng);
+    const pace = parseFloat(seedPace) || 6.2;
+
+    setSimRunning(true);
+    setSimStates(toSimulate.map((m) => ({ mission: m, status: 'pending' })));
+
+    let doneCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < toSimulate.length; i++) {
+      const mission = toSimulate[i];
+      setSimStates((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'running' } : s));
+      try {
+        const result = await simulateMission(selectedUser.id, {
+          mission_id: mission.id,
+          start_lat: lat,
+          start_lng: lng,
+          seed: i,
+          pace_min_per_km: pace,
+        });
+        setSimStates((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'done', result } : s));
+        doneCount++;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : 'Failed';
+        setSimStates((prev) => prev.map((s, idx) => idx === i ? { ...s, status: 'error', error: msg } : s));
+        errorCount++;
+      }
+    }
+
+    setSimRunning(false);
+    toast({
+      title: 'Simulation complete',
+      description: `${doneCount}/${toSimulate.length} missions completed${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      variant: errorCount > 0 ? 'destructive' : 'default',
+    });
+  }
+
   const totalPages = Math.ceil(total / LIMIT);
 
   if (!ready) return null;
@@ -405,13 +531,19 @@ export default function UsersPage() {
                 <p className="text-sm text-muted-foreground">Joined {formatDate(selectedUser.createdAt)}</p>
               </SheetHeader>
 
-              <Tabs defaultValue="profile" onValueChange={(v) => { if (v === 'inventory' && selectedUser) loadInventory(selectedUser.id); }}>
+              <Tabs defaultValue="profile" onValueChange={(v) => {
+                if (v === 'inventory' && selectedUser) loadInventory(selectedUser.id);
+                if (v === 'seed') loadSeedMissions();
+              }}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="stats">Run Stats</TabsTrigger>
                   <TabsTrigger value="missions">Missions ({userMissions.length})</TabsTrigger>
                   <TabsTrigger value="inventory">Inventory</TabsTrigger>
                   <TabsTrigger value="role">Role</TabsTrigger>
+                  {selectedUser.role === 'test' && (
+                    <TabsTrigger value="seed">Seed Data</TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="profile">
@@ -608,6 +740,161 @@ export default function UsersPage() {
                       </Card>
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="seed">
+                  <div className="space-y-4">
+                    {/* Profile & shelter */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Shelter &amp; Vitals</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Shelter Lat</label>
+                            <Input value={shelterLat} onChange={(e) => setShelterLat(e.target.value)} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Shelter Lng</label>
+                            <Input value={shelterLng} onChange={(e) => setShelterLng(e.target.value)} />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs text-muted-foreground">Shelter Name</label>
+                          <Input value={shelterName} onChange={(e) => setShelterName(e.target.value)} />
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Age</label>
+                            <Input type="number" value={vitalsAge} onChange={(e) => setVitalsAge(e.target.value)} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Gender</label>
+                            <Select value={vitalsGender} onValueChange={setVitalsGender}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Weekly Goal</label>
+                            <Input type="number" value={vitalsWeeklyGoal} onChange={(e) => setVitalsWeeklyGoal(e.target.value)} />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Height (cm)</label>
+                            <Input type="number" value={vitalsHeight} onChange={(e) => setVitalsHeight(e.target.value)} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Weight (kg)</label>
+                            <Input type="number" value={vitalsWeight} onChange={(e) => setVitalsWeight(e.target.value)} />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-xs text-muted-foreground">Experience</label>
+                            <Select value={vitalsExperience} onValueChange={setVitalsExperience}>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="walker">Walker</SelectItem>
+                                <SelectItem value="beginner">Beginner</SelectItem>
+                                <SelectItem value="intermediate">Intermediate</SelectItem>
+                                <SelectItem value="advanced">Advanced</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <Button onClick={applyProfileSeed} disabled={applyingProfile} className="w-full">
+                          {applyingProfile ? 'Applying…' : 'Apply Profile'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* Mission simulation */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base">Simulate Missions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex items-end gap-2">
+                          <div className="space-y-1 w-36">
+                            <label className="text-xs text-muted-foreground">Pace (min/km)</label>
+                            <Input type="number" step="0.1" value={seedPace} onChange={(e) => setSeedPace(e.target.value)} />
+                          </div>
+                          <p className="text-xs text-muted-foreground pb-2">Routes start from the shelter coordinates above.</p>
+                        </div>
+
+                        {seedMissionsLoading && <p className="text-sm text-muted-foreground">Loading missions…</p>}
+
+                        {!seedMissionsLoading && seedMissions.length > 0 && (
+                          <>
+                            <div className="flex gap-2 mb-1">
+                              <Button variant="ghost" size="sm" className="text-xs h-7 px-2"
+                                onClick={() => setSelectedMissionIds(new Set(seedMissions.map((m) => m.id)))}>
+                                Select all
+                              </Button>
+                              <Button variant="ghost" size="sm" className="text-xs h-7 px-2"
+                                onClick={() => setSelectedMissionIds(new Set())}>
+                                Clear
+                              </Button>
+                            </div>
+                            <div className="rounded-md border divide-y">
+                              {seedMissions.map((m) => (
+                                <label key={m.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40">
+                                  <Checkbox
+                                    checked={selectedMissionIds.has(m.id)}
+                                    onCheckedChange={() => toggleMission(m.id)}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{m.title}</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{m.difficulty} · {m.estimated_distance} km</p>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                            <Button
+                              onClick={runSimulation}
+                              disabled={simRunning || selectedMissionIds.size === 0}
+                              className="w-full"
+                            >
+                              {simRunning ? 'Simulating…' : `Simulate ${selectedMissionIds.size} Mission${selectedMissionIds.size !== 1 ? 's' : ''}`}
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Per-mission progress */}
+                        {simStates.length > 0 && (
+                          <div className="rounded-md border divide-y mt-2">
+                            {simStates.map((s, i) => (
+                              <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
+                                <span className="w-4 shrink-0">
+                                  {s.status === 'pending' && <span className="text-muted-foreground">○</span>}
+                                  {s.status === 'running' && <span className="text-yellow-500 animate-pulse">⟳</span>}
+                                  {s.status === 'done' && <span className="text-green-500">✓</span>}
+                                  {s.status === 'error' && <span className="text-destructive">✗</span>}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{s.mission.title}</p>
+                                  {s.status === 'done' && s.result && (
+                                    <p className="text-xs text-muted-foreground">
+                                      {s.result.distanceKm.toFixed(2)} km · +{s.result.xpAwarded} XP · +{s.result.goldAwarded}G
+                                      {s.result.leveledUp && <span className="ml-1 text-yellow-500 font-medium">↑ Level {s.result.newLevel}</span>}
+                                    </p>
+                                  )}
+                                  {s.status === 'error' && (
+                                    <p className="text-xs text-destructive">{s.error}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="role">
