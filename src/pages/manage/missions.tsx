@@ -30,16 +30,27 @@ interface Mission {
   created_at: string;
 }
 
-interface MissionRewards {
-  xp?: number;
-  gold?: number;
-  territory?: number;
-  loot?: LootEntry[];
-}
+type LootMode = 'specific' | 'random';
+type LootRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 interface LootEntry {
   id: string;
   quantity: number;
+}
+
+interface LootConfig {
+  mode: LootMode;
+  items?: LootEntry[];
+  weights?: Partial<Record<LootRarity, number>>;
+  types?: string[];
+}
+
+interface MissionRewards {
+  xp?: number;
+  gold?: number;
+  territory?: number;
+  /** New structured format; may still be a legacy array on un-migrated rows. */
+  loot?: LootConfig | LootEntry[];
 }
 
 interface CatalogItem {
@@ -76,9 +87,19 @@ export default function MissionsPage() {
   const [rewardsXp, setRewardsXp] = useState('0');
   const [rewardsGold, setRewardsGold] = useState('0');
   const [rewardsTerritory, setRewardsTerritory] = useState('0');
-  const [rewardsLoot, setRewardsLoot] = useState<LootEntry[]>([]);
+
+  // Loot config state
+  const [lootMode, setLootMode] = useState<LootMode>('specific');
+  // Specific mode
+  const [specificItems, setSpecificItems] = useState<LootEntry[]>([]);
   const [newLootItemId, setNewLootItemId] = useState('');
   const [newLootQty, setNewLootQty] = useState('1');
+  // Random mode
+  const [lootTypes, setLootTypes] = useState<string[]>(['equipment']);
+  const [lootWeights, setLootWeights] = useState<Record<LootRarity, string>>({
+    common: '50', uncommon: '30', rare: '15', epic: '4', legendary: '1',
+  });
+
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
 
   const form = useForm<MissionForm>({ resolver: zodResolver(missionSchema) });
@@ -104,11 +125,41 @@ export default function MissionsPage() {
     }
   }, [ready]);
 
+  const RARITY_KEYS: LootRarity[] = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
   function parseRewards(rewards: MissionRewards | null) {
     setRewardsXp(String(rewards?.xp ?? 0));
     setRewardsGold(String(rewards?.gold ?? 0));
     setRewardsTerritory(String(rewards?.territory ?? 0));
-    setRewardsLoot(rewards?.loot ?? []);
+
+    const loot = rewards?.loot;
+    if (!loot) {
+      setLootMode('specific');
+      setSpecificItems([]);
+      return;
+    }
+    // Legacy flat array → treat as specific
+    if (Array.isArray(loot)) {
+      setLootMode('specific');
+      setSpecificItems(loot);
+      return;
+    }
+    // Structured format
+    setLootMode(loot.mode || 'specific');
+    if (loot.mode === 'random') {
+      setLootTypes(loot.types ?? ['equipment']);
+      const w = loot.weights ?? {};
+      setLootWeights({
+        common:    String(w.common    ?? 50),
+        uncommon:  String(w.uncommon  ?? 30),
+        rare:      String(w.rare      ?? 15),
+        epic:      String(w.epic      ?? 4),
+        legendary: String(w.legendary ?? 1),
+      });
+      setSpecificItems([]);
+    } else {
+      setSpecificItems(loot.items ?? []);
+    }
   }
 
   function openCreate() {
@@ -137,7 +188,7 @@ export default function MissionsPage() {
   function addLootEntry() {
     if (!newLootItemId) return;
     const qty = parseInt(newLootQty, 10) || 1;
-    setRewardsLoot((prev) => {
+    setSpecificItems((prev) => {
       const existing = prev.find((l) => l.id === newLootItemId);
       if (existing) {
         return prev.map((l) => l.id === newLootItemId ? { ...l, quantity: l.quantity + qty } : l);
@@ -149,19 +200,40 @@ export default function MissionsPage() {
   }
 
   function removeLootEntry(itemId: string) {
-    setRewardsLoot((prev) => prev.filter((l) => l.id !== itemId));
+    setSpecificItems((prev) => prev.filter((l) => l.id !== itemId));
+  }
+
+  function toggleLootType(type: string) {
+    setLootTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   }
 
   async function onSubmit(values: MissionForm) {
     setSaving(true);
     try {
+      const loot: LootConfig =
+        lootMode === 'random'
+          ? {
+              mode: 'random',
+              types: lootTypes,
+              weights: {
+                common:    parseInt(lootWeights.common, 10)    || 0,
+                uncommon:  parseInt(lootWeights.uncommon, 10)  || 0,
+                rare:      parseInt(lootWeights.rare, 10)      || 0,
+                epic:      parseInt(lootWeights.epic, 10)      || 0,
+                legendary: parseInt(lootWeights.legendary, 10) || 0,
+              },
+            }
+          : { mode: 'specific', items: specificItems };
+
       const payload = {
         ...values,
         rewards: {
           xp: parseInt(rewardsXp, 10) || 0,
           gold: parseInt(rewardsGold, 10) || 0,
           territory: parseFloat(rewardsTerritory) || 0,
-          loot: rewardsLoot,
+          loot,
         },
       };
 
@@ -348,61 +420,142 @@ export default function MissionsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Loot Drops</label>
+                  {/* ── Completion Loot ─────────────────────────────────────── */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Completion Loot</label>
+                      <p className="text-xs text-muted-foreground">Awarded when the mission is completed. Route pickups (consumables) are separate.</p>
+                    </div>
 
-                    {rewardsLoot.length > 0 && (
-                      <div className="rounded-md border divide-y mb-2">
-                        {rewardsLoot.map((entry) => {
-                          const item = catalogItems.find((i) => i.id === entry.id);
-                          return (
-                            <div key={entry.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                              <span className="font-medium">{item?.name ?? entry.id}</span>
-                              <div className="flex items-center gap-3">
-                                <span className="text-muted-foreground">×{entry.quantity}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
-                                  onClick={() => removeLootEntry(entry.id)}
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                    {/* Mode selector */}
+                    <div className="flex gap-2">
+                      {(['specific', 'random'] as LootMode[]).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setLootMode(m)}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
+                            lootMode === m
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background text-muted-foreground border-input hover:text-foreground'
+                          }`}
+                        >
+                          {m === 'specific' ? 'Specific Items' : 'Random (1 item)'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {lootMode === 'specific' && (
+                      <div className="space-y-2">
+                        {specificItems.length > 0 && (
+                          <div className="rounded-md border divide-y">
+                            {specificItems.map((entry) => {
+                              const item = catalogItems.find((i) => i.id === entry.id);
+                              return (
+                                <div key={entry.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                                  <span className="font-medium">{item?.name ?? entry.id}</span>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-muted-foreground">×{entry.quantity}</span>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                                      onClick={() => removeLootEntry(entry.id)}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 items-end">
+                          <div className="flex-1 space-y-1">
+                            <label className="text-xs text-muted-foreground">Item</label>
+                            <Select value={newLootItemId} onValueChange={setNewLootItemId}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select item…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {catalogItems.map((item) => (
+                                  <SelectItem key={item.id} value={item.id}>
+                                    {item.name}
+                                    <span className="ml-1 text-xs text-muted-foreground">({item.category})</span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-20 space-y-1">
+                            <label className="text-xs text-muted-foreground">Qty</label>
+                            <Input type="number" min="1" value={newLootQty} onChange={(e) => setNewLootQty(e.target.value)} />
+                          </div>
+                          <Button type="button" variant="outline" onClick={addLootEntry} disabled={!newLootItemId}>
+                            Add
+                          </Button>
+                        </div>
+                        {catalogItems.length === 0 && (
+                          <p className="text-xs text-muted-foreground">No items in catalog. Add items first via the Item Catalog page.</p>
+                        )}
                       </div>
                     )}
 
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1 space-y-1">
-                        <label className="text-xs text-muted-foreground">Item</label>
-                        <Select value={newLootItemId} onValueChange={setNewLootItemId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select item…" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {catalogItems.map((item) => (
-                              <SelectItem key={item.id} value={item.id}>
-                                {item.name}
-                                <span className="ml-1 text-xs text-muted-foreground">({item.category})</span>
-                              </SelectItem>
+                    {lootMode === 'random' && (
+                      <div className="space-y-4">
+                        {/* Item type checkboxes */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Item Types</label>
+                          <div className="flex gap-4">
+                            {(['equipment', 'consumable'] as const).map((type) => (
+                              <label key={type} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={lootTypes.includes(type)}
+                                  onChange={() => toggleLootType(type)}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm capitalize">{type}</span>
+                              </label>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </div>
+                          {lootTypes.length === 0 && (
+                            <p className="text-xs text-destructive">Select at least one item type.</p>
+                          )}
+                        </div>
+
+                        {/* Rarity weight inputs */}
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Rarity Weights (%)</label>
+                          <div className="grid grid-cols-5 gap-2">
+                            {RARITY_KEYS.map((rarity) => (
+                              <div key={rarity} className="space-y-1">
+                                <label className="text-xs text-muted-foreground capitalize">{rarity}</label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={lootWeights[rarity]}
+                                  onChange={(e) => setLootWeights((prev) => ({ ...prev, [rarity]: e.target.value }))}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Total:{' '}
+                            <span className={
+                              RARITY_KEYS.reduce((s, r) => s + (parseInt(lootWeights[r], 10) || 0), 0) === 100
+                                ? 'text-green-600'
+                                : 'text-destructive'
+                            }>
+                              {RARITY_KEYS.reduce((s, r) => s + (parseInt(lootWeights[r], 10) || 0), 0)}%
+                            </span>
+                            {' '}(should equal 100%)
+                          </p>
+                        </div>
                       </div>
-                      <div className="w-20 space-y-1">
-                        <label className="text-xs text-muted-foreground">Qty</label>
-                        <Input type="number" min="1" value={newLootQty} onChange={(e) => setNewLootQty(e.target.value)} />
-                      </div>
-                      <Button type="button" variant="outline" onClick={addLootEntry} disabled={!newLootItemId}>
-                        Add
-                      </Button>
-                    </div>
-                    {catalogItems.length === 0 && (
-                      <p className="text-xs text-muted-foreground">No items in catalog. Add items first via the Item Catalog page.</p>
                     )}
                   </div>
                 </TabsContent>
