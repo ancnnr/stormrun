@@ -37,17 +37,23 @@ const programSchema = z.object({
 });
 type ProgramForm = z.infer<typeof programSchema>;
 
-const DEFAULT_TIMELINE_OPTIONS = JSON.stringify([
+interface TimelineOption {
+  weeks: number;
+  label: string;
+  sessionsPerWeek: number;
+}
+
+const DEFAULT_TIMELINE_OPTIONS: TimelineOption[] = [
   { weeks: 8, label: 'Standard', sessionsPerWeek: 3 },
   { weeks: 6, label: 'Moderate', sessionsPerWeek: 4 },
   { weeks: 4, label: 'Intensive', sessionsPerWeek: 5 },
-], null, 2);
+];
 
-const DEFAULT_OUTCOMES = JSON.stringify([
+const DEFAULT_OUTCOMES: string[] = [
   'Run 5K continuously',
   'Build a consistent running habit',
   'Improve cardiovascular fitness',
-], null, 2);
+];
 
 export default function ProgramsPage() {
   const { ready } = useManageAuth();
@@ -61,10 +67,10 @@ export default function ProgramsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Program | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // JSON fields managed outside react-hook-form
-  const [timelineOptionsJson, setTimelineOptionsJson] = useState(DEFAULT_TIMELINE_OPTIONS);
-  const [outcomesJson, setOutcomesJson] = useState(DEFAULT_OUTCOMES);
-  const [jsonError, setJsonError] = useState<string | null>(null);
+  const [timelineOptions, setTimelineOptions] = useState<TimelineOption[]>(DEFAULT_TIMELINE_OPTIONS);
+  const [outcomes, setOutcomes] = useState<string[]>(DEFAULT_OUTCOMES);
+  const [newOutcome, setNewOutcome] = useState('');
+  const [timelineError, setTimelineError] = useState<string | null>(null);
 
   const form = useForm<ProgramForm>({ resolver: zodResolver(programSchema) });
 
@@ -84,9 +90,10 @@ export default function ProgramsPage() {
 
   function openCreate() {
     setEditing(null);
-    setTimelineOptionsJson(DEFAULT_TIMELINE_OPTIONS);
-    setOutcomesJson(DEFAULT_OUTCOMES);
-    setJsonError(null);
+    setTimelineOptions(DEFAULT_TIMELINE_OPTIONS);
+    setOutcomes(DEFAULT_OUTCOMES);
+    setNewOutcome('');
+    setTimelineError(null);
     form.reset({
       slug: '',
       title: '',
@@ -105,9 +112,10 @@ export default function ProgramsPage() {
 
   function openEdit(p: Program) {
     setEditing(p);
-    setTimelineOptionsJson(JSON.stringify(p.timeline_options, null, 2));
-    setOutcomesJson(JSON.stringify(p.expected_outcomes || [], null, 2));
-    setJsonError(null);
+    setTimelineOptions(Array.isArray(p.timeline_options) ? p.timeline_options as TimelineOption[] : DEFAULT_TIMELINE_OPTIONS);
+    setOutcomes(Array.isArray(p.expected_outcomes) ? p.expected_outcomes as string[] : DEFAULT_OUTCOMES);
+    setNewOutcome('');
+    setTimelineError(null);
     form.reset({
       slug: p.slug,
       title: p.title,
@@ -125,18 +133,9 @@ export default function ProgramsPage() {
   }
 
   async function onSubmit(values: ProgramForm) {
-    setJsonError(null);
-    let timeline_options, expected_outcomes;
-    try {
-      timeline_options = JSON.parse(timelineOptionsJson);
-    } catch {
-      setJsonError('Timeline options: invalid JSON');
-      return;
-    }
-    try {
-      expected_outcomes = JSON.parse(outcomesJson);
-    } catch {
-      setJsonError('Expected outcomes: invalid JSON');
+    setTimelineError(null);
+    if (timelineOptions.some((o) => !o.label.trim() || o.weeks < 1 || o.sessionsPerWeek < 1)) {
+      setTimelineError('All timeline options require a label, weeks ≥ 1, and sessions/wk ≥ 1.');
       return;
     }
 
@@ -144,8 +143,8 @@ export default function ProgramsPage() {
     try {
       const payload = {
         ...values,
-        timeline_options,
-        expected_outcomes,
+        timeline_options: timelineOptions,
+        expected_outcomes: outcomes.filter((o) => o.trim()),
         cover_image_url: values.cover_image_url || null,
         icon: values.icon || null,
       };
@@ -363,29 +362,116 @@ export default function ProgramsPage() {
                 </FormItem>
               )} />
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Timeline Options (JSON)</label>
-                <Textarea
-                  rows={6}
-                  className="font-mono text-xs"
-                  value={timelineOptionsJson}
-                  onChange={(e) => setTimelineOptionsJson(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Array of {'{ weeks, label, sessionsPerWeek }'}</p>
+              {/* Timeline Options structured editor */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Timeline Options</label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTimelineOptions((prev) => [...prev, { weeks: 4, label: '', sessionsPerWeek: 3 }])}
+                  >
+                    + Add Option
+                  </Button>
+                </div>
+                {timelineOptions.length === 0 && (
+                  <p className="text-xs text-muted-foreground border border-dashed rounded p-3 text-center">No timeline options. Add one above.</p>
+                )}
+                {timelineOptions.map((opt, i) => (
+                  <div key={i} className="grid grid-cols-[80px_1fr_120px_auto] gap-2 items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Weeks</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={opt.weeks}
+                        onChange={(e) => setTimelineOptions((prev) => prev.map((o, j) => j === i ? { ...o, weeks: parseInt(e.target.value, 10) || 1 } : o))}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Label</label>
+                      <Input
+                        value={opt.label}
+                        placeholder="e.g. Standard"
+                        onChange={(e) => setTimelineOptions((prev) => prev.map((o, j) => j === i ? { ...o, label: e.target.value } : o))}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Sessions/wk</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={7}
+                        value={opt.sessionsPerWeek}
+                        onChange={(e) => setTimelineOptions((prev) => prev.map((o, j) => j === i ? { ...o, sessionsPerWeek: parseInt(e.target.value, 10) || 1 } : o))}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-destructive h-9"
+                      onClick={() => setTimelineOptions((prev) => prev.filter((_, j) => j !== i))}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                {timelineError && <p className="text-xs text-destructive">{timelineError}</p>}
               </div>
 
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Expected Outcomes (JSON)</label>
-                <Textarea
-                  rows={4}
-                  className="font-mono text-xs"
-                  value={outcomesJson}
-                  onChange={(e) => setOutcomesJson(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Array of strings</p>
+              {/* Expected Outcomes list editor */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Expected Outcomes</label>
+                {outcomes.length > 0 && (
+                  <div className="rounded-md border divide-y">
+                    {outcomes.map((outcome, i) => (
+                      <div key={i} className="flex items-center gap-2 px-3 py-1.5">
+                        <span className="flex-1 text-sm">{outcome}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                          onClick={() => setOutcomes((prev) => prev.filter((_, j) => j !== i))}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. Run 5K continuously"
+                    value={newOutcome}
+                    onChange={(e) => setNewOutcome(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newOutcome.trim()) {
+                          setOutcomes((prev) => [...prev, newOutcome.trim()]);
+                          setNewOutcome('');
+                        }
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!newOutcome.trim()}
+                    onClick={() => {
+                      if (newOutcome.trim()) {
+                        setOutcomes((prev) => [...prev, newOutcome.trim()]);
+                        setNewOutcome('');
+                      }
+                    }}
+                  >
+                    Add
+                  </Button>
+                </div>
               </div>
-
-              {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

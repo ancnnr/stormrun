@@ -97,6 +97,7 @@ export interface Program {
   status: string;
   sort_order: number;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ProgramMission {

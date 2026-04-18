@@ -13,22 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
-
-interface Mission {
-  id: string;
-  type: string;
-  title: string;
-  description: string | null;
-  difficulty: string | null;
-  estimated_time: string | null;
-  estimated_distance: number | null;
-  is_priority: boolean;
-  sort_order: number;
-  rewards: MissionRewards | null;
-  created_at: string;
-}
+import type { Mission } from '@/types';
 
 type LootMode = 'specific' | 'random';
 type LootRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
@@ -59,13 +48,27 @@ interface CatalogItem {
   category: string;
 }
 
+const MISSION_TYPES = ['run', 'walk', 'interval', 'rest'] as const;
+const DIFFICULTY_LEVELS = ['easy', 'moderate', 'hard', 'expert'] as const;
+const MISSION_STATUSES = ['draft', 'active', 'archived'] as const;
+const LOCOMOTION_TYPES = ['run', 'walk', 'walk_run'] as const;
+
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-yellow-100 text-yellow-800',
+  active: 'bg-green-100 text-green-800',
+  published: 'bg-green-100 text-green-800',
+  archived: 'bg-gray-100 text-gray-600',
+};
+
 const missionSchema = z.object({
-  type: z.string().min(1, 'Type required'),
+  type: z.enum(MISSION_TYPES, { required_error: 'Type required' }),
   title: z.string().min(1, 'Title required'),
-  description: z.string().optional(),
-  difficulty: z.string().optional(),
-  estimated_time: z.string().optional(),
-  estimated_distance: z.coerce.number().optional(),
+  description: z.string().default(''),
+  difficulty: z.enum(DIFFICULTY_LEVELS, { required_error: 'Difficulty required' }),
+  estimated_time: z.coerce.number().int().min(0).default(0),
+  estimated_distance: z.coerce.number().min(0).default(0),
+  locomotion_type: z.enum(LOCOMOTION_TYPES).nullable().default(null),
+  status: z.enum(MISSION_STATUSES).default('draft'),
   is_priority: z.boolean().default(false),
   sort_order: z.coerce.number().default(0),
 });
@@ -164,7 +167,7 @@ export default function MissionsPage() {
 
   function openCreate() {
     setEditing(null);
-    form.reset({ type: '', title: '', description: '', difficulty: '', estimated_time: '', sort_order: 0, is_priority: false });
+    form.reset({ type: undefined, title: '', description: '', difficulty: undefined, estimated_time: 0, estimated_distance: 0, locomotion_type: null, status: 'draft', sort_order: 0, is_priority: false });
     parseRewards(null);
     setDialogOpen(true);
   }
@@ -172,16 +175,18 @@ export default function MissionsPage() {
   function openEdit(m: Mission) {
     setEditing(m);
     form.reset({
-      type: m.type,
+      type: MISSION_TYPES.includes(m.type as typeof MISSION_TYPES[number]) ? m.type as typeof MISSION_TYPES[number] : undefined,
       title: m.title,
       description: m.description ?? '',
-      difficulty: m.difficulty ?? '',
-      estimated_time: m.estimated_time ?? '',
-      estimated_distance: m.estimated_distance ?? undefined,
+      difficulty: DIFFICULTY_LEVELS.includes(m.difficulty as typeof DIFFICULTY_LEVELS[number]) ? m.difficulty as typeof DIFFICULTY_LEVELS[number] : undefined,
+      estimated_time: m.estimated_time ? parseInt(m.estimated_time, 10) || 0 : 0,
+      estimated_distance: m.estimated_distance ?? 0,
+      locomotion_type: LOCOMOTION_TYPES.includes(m.locomotion_type as typeof LOCOMOTION_TYPES[number]) ? m.locomotion_type as typeof LOCOMOTION_TYPES[number] : null,
+      status: MISSION_STATUSES.includes(m.status as typeof MISSION_STATUSES[number]) ? m.status as typeof MISSION_STATUSES[number] : 'draft',
       is_priority: m.is_priority,
       sort_order: m.sort_order,
     });
-    parseRewards(m.rewards);
+    parseRewards(m.rewards as MissionRewards | null);
     setDialogOpen(true);
   }
 
@@ -229,6 +234,7 @@ export default function MissionsPage() {
 
       const payload = {
         ...values,
+        estimated_time: `${values.estimated_time} min`,
         rewards: {
           xp: parseInt(rewardsXp, 10) || 0,
           gold: parseInt(rewardsGold, 10) || 0,
@@ -296,8 +302,8 @@ export default function MissionsPage() {
               <TableHead>Title</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Difficulty</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Sort</TableHead>
-              <TableHead>Priority</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -305,10 +311,14 @@ export default function MissionsPage() {
             {missions.map((m) => (
               <TableRow key={m.id}>
                 <TableCell className="font-medium">{m.title}</TableCell>
-                <TableCell>{m.type}</TableCell>
-                <TableCell>{m.difficulty ?? '—'}</TableCell>
+                <TableCell className="capitalize">{m.type}</TableCell>
+                <TableCell className="capitalize">{m.difficulty}</TableCell>
+                <TableCell>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[m.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {m.status}
+                  </span>
+                </TableCell>
                 <TableCell>{m.sort_order}</TableCell>
-                <TableCell>{m.is_priority ? 'Yes' : 'No'}</TableCell>
                 <TableCell className="text-right space-x-2">
                   <Button variant="outline" size="sm" onClick={() => openEdit(m)}>Edit</Button>
                   <Link href={`/manage/mission-audio?id=${m.id}`}>
@@ -352,21 +362,67 @@ export default function MissionsPage() {
                     <FormField control={form.control} name="type" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Type</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {MISSION_TYPES.map((t) => (
+                              <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="difficulty" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Difficulty</FormLabel>
-                        <FormControl><Input {...field} /></FormControl>
+                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                          <FormControl><SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {DIFFICULTY_LEVELS.map((d) => (
+                              <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="status" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            {MISSION_STATUSES.map((s) => (
+                              <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="locomotion_type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Locomotion Type</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(v === '_none' ? null : v)}
+                          value={field.value ?? '_none'}
+                        >
+                          <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="_none">None</SelectItem>
+                            <SelectItem value="run">Run</SelectItem>
+                            <SelectItem value="walk">Walk</SelectItem>
+                            <SelectItem value="walk_run">Walk / Run</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
                     <FormField control={form.control} name="estimated_time" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Est. Time</FormLabel>
-                        <FormControl><Input placeholder="e.g. 30 min" {...field} /></FormControl>
+                        <FormLabel>Est. Time (min)</FormLabel>
+                        <FormControl><Input type="number" min="0" placeholder="e.g. 30" {...field} value={field.value ?? ''} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -387,7 +443,7 @@ export default function MissionsPage() {
                     <FormField control={form.control} name="is_priority" render={({ field }) => (
                       <FormItem className="flex items-center gap-2 pt-6">
                         <FormControl>
-                          <input type="checkbox" checked={field.value} onChange={field.onChange} className="w-4 h-4" />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
                         <FormLabel className="!mt-0">Priority</FormLabel>
                       </FormItem>
@@ -396,7 +452,7 @@ export default function MissionsPage() {
                       <FormItem className="col-span-2">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
-                          <textarea {...field} rows={3} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                          <Textarea rows={3} {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

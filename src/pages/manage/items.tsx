@@ -8,22 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-
-interface Item {
-  id: string;
-  name: string;
-  category: 'equipment' | 'consumable';
-  description: string | null;
-  icon: string | null;
-  rarity: string;
-  effects: Record<string, unknown>;
-  max_stack: number | null;
-  unlock_requirement: string | null;
-  sort_order: number;
-  created_at: string;
-}
+import type { Item } from '@/types';
 
 const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
@@ -42,10 +30,29 @@ interface ItemFormState {
   description: string;
   icon: string;
   rarity: string;
-  effects: string;
   max_stack: string;
   unlock_requirement: string;
   sort_order: string;
+}
+
+interface EquipmentEffects {
+  healthBonus: string;
+  staminaBonus: string;
+  hazardReduction: string;
+  damageReduction: string;
+  detectionRange: string;
+}
+
+interface ConsumableEffects {
+  type: string;
+  value: string;
+  duration: string;
+}
+
+const CONSUMABLE_TYPES = ['health', 'stamina', 'protection', 'utility'] as const;
+
+function toSlug(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 }
 
 const defaultForm: ItemFormState = {
@@ -55,11 +62,52 @@ const defaultForm: ItemFormState = {
   description: '',
   icon: '',
   rarity: 'common',
-  effects: '{}',
   max_stack: '',
   unlock_requirement: '',
   sort_order: '0',
 };
+
+const defaultEquipmentEffects: EquipmentEffects = {
+  healthBonus: '', staminaBonus: '', hazardReduction: '', damageReduction: '', detectionRange: '',
+};
+
+const defaultConsumableEffects: ConsumableEffects = {
+  type: 'health', value: '', duration: '',
+};
+
+function parseEffects(effects: Record<string, unknown>, category: string): { eq: EquipmentEffects; con: ConsumableEffects } {
+  const eq = { ...defaultEquipmentEffects };
+  const con = { ...defaultConsumableEffects };
+  if (!effects) return { eq, con };
+  if (category === 'equipment') {
+    eq.healthBonus = effects.healthBonus != null ? String(effects.healthBonus) : '';
+    eq.staminaBonus = effects.staminaBonus != null ? String(effects.staminaBonus) : '';
+    eq.hazardReduction = effects.hazardReduction != null ? String(effects.hazardReduction) : '';
+    eq.damageReduction = effects.damageReduction != null ? String(effects.damageReduction) : '';
+    eq.detectionRange = effects.detectionRange != null ? String(effects.detectionRange) : '';
+  } else {
+    con.type = typeof effects.type === 'string' ? effects.type : 'health';
+    con.value = effects.value != null ? String(effects.value) : '';
+    con.duration = effects.duration != null ? String(effects.duration) : '';
+  }
+  return { eq, con };
+}
+
+function buildEffects(category: string, eq: EquipmentEffects, con: ConsumableEffects): Record<string, unknown> {
+  if (category === 'equipment') {
+    const result: Record<string, unknown> = {};
+    if (eq.healthBonus !== '') result.healthBonus = parseFloat(eq.healthBonus) || 0;
+    if (eq.staminaBonus !== '') result.staminaBonus = parseFloat(eq.staminaBonus) || 0;
+    if (eq.hazardReduction !== '') result.hazardReduction = parseFloat(eq.hazardReduction) || 0;
+    if (eq.damageReduction !== '') result.damageReduction = parseFloat(eq.damageReduction) || 0;
+    if (eq.detectionRange !== '') result.detectionRange = parseFloat(eq.detectionRange) || 0;
+    return result;
+  }
+  const result: Record<string, unknown> = { type: con.type };
+  if (con.value !== '') result.value = parseFloat(con.value) || 0;
+  if (con.duration !== '') result.duration = parseFloat(con.duration) || 0;
+  return result;
+}
 
 export default function ItemsPage() {
   const { ready } = useManageAuth();
@@ -69,7 +117,8 @@ export default function ItemsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Item | null>(null);
   const [formState, setFormState] = useState<ItemFormState>(defaultForm);
-  const [effectsError, setEffectsError] = useState<string | null>(null);
+  const [equipmentEffects, setEquipmentEffects] = useState<EquipmentEffects>(defaultEquipmentEffects);
+  const [consumableEffects, setConsumableEffects] = useState<ConsumableEffects>(defaultConsumableEffects);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Item | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -93,12 +142,14 @@ export default function ItemsPage() {
   function openCreate() {
     setEditing(null);
     setFormState(defaultForm);
-    setEffectsError(null);
+    setEquipmentEffects(defaultEquipmentEffects);
+    setConsumableEffects(defaultConsumableEffects);
     setDialogOpen(true);
   }
 
   function openEdit(item: Item) {
     setEditing(item);
+    const { eq, con } = parseEffects(item.effects as Record<string, unknown> ?? {}, item.category);
     setFormState({
       id: item.id,
       name: item.name,
@@ -106,29 +157,20 @@ export default function ItemsPage() {
       description: item.description ?? '',
       icon: item.icon ?? '',
       rarity: item.rarity,
-      effects: JSON.stringify(item.effects ?? {}, null, 2),
       max_stack: item.max_stack != null ? String(item.max_stack) : '',
       unlock_requirement: item.unlock_requirement ?? '',
       sort_order: String(item.sort_order),
     });
-    setEffectsError(null);
+    setEquipmentEffects(eq);
+    setConsumableEffects(con);
     setDialogOpen(true);
   }
 
   function updateField(field: keyof ItemFormState, value: string) {
     setFormState((prev) => ({ ...prev, [field]: value }));
-    if (field === 'effects') setEffectsError(null);
   }
 
   async function handleSave() {
-    let parsedEffects: unknown;
-    try {
-      parsedEffects = JSON.parse(formState.effects || '{}');
-    } catch {
-      setEffectsError('Invalid JSON in effects field');
-      return;
-    }
-
     if (!formState.id.trim() || !formState.name.trim()) {
       toast({ title: 'Validation', description: 'ID and Name are required', variant: 'destructive' });
       return;
@@ -143,7 +185,7 @@ export default function ItemsPage() {
         description: formState.description || null,
         icon: formState.icon || null,
         rarity: formState.rarity,
-        effects: parsedEffects,
+        effects: buildEffects(formState.category, equipmentEffects, consumableEffects),
         max_stack: formState.max_stack ? parseInt(formState.max_stack, 10) : null,
         unlock_requirement: formState.unlock_requirement || null,
         sort_order: parseInt(formState.sort_order || '0', 10),
@@ -256,7 +298,15 @@ export default function ItemsPage() {
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium">Name *</label>
-              <Input value={formState.name} onChange={(e) => updateField('name', e.target.value)} />
+              <Input
+                value={formState.name}
+                onChange={(e) => updateField('name', e.target.value)}
+                onBlur={(e) => {
+                  if (!editing && !formState.id) {
+                    updateField('id', toSlug(e.target.value));
+                  }
+                }}
+              />
             </div>
 
             <div className="space-y-1">
@@ -316,32 +366,76 @@ export default function ItemsPage() {
 
             <div className="col-span-2 space-y-1">
               <label className="text-sm font-medium">Description</label>
-              <textarea
+              <Textarea
                 value={formState.description}
                 onChange={(e) => updateField('description', e.target.value)}
                 rows={2}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
-            <div className="col-span-2 space-y-1">
-              <label className="text-sm font-medium">
-                Effects (JSON)
-                {formState.category === 'equipment' && (
-                  <span className="ml-2 text-xs text-muted-foreground">keys: healthBonus, staminaBonus, hazardReduction, damageReduction, detectionRange</span>
-                )}
-                {formState.category === 'consumable' && (
-                  <span className="ml-2 text-xs text-muted-foreground">keys: type (health|stamina|protection|utility), value, duration</span>
-                )}
-              </label>
-              <textarea
-                value={formState.effects}
-                onChange={(e) => updateField('effects', e.target.value)}
-                rows={4}
-                className={`w-full rounded-md border bg-background px-3 py-2 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${effectsError ? 'border-destructive' : 'border-input'}`}
-              />
-              {effectsError && <p className="text-xs text-destructive">{effectsError}</p>}
-            </div>
+            {formState.category === 'equipment' && (
+              <div className="col-span-2 space-y-2">
+                <label className="text-sm font-medium">Effects</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    ['healthBonus', 'Health Bonus'],
+                    ['staminaBonus', 'Stamina Bonus'],
+                    ['hazardReduction', 'Hazard Reduction'],
+                    ['damageReduction', 'Damage Reduction'],
+                    ['detectionRange', 'Detection Range'],
+                  ] as [keyof EquipmentEffects, string][]).map(([key, label]) => (
+                    <div key={key} className="space-y-1">
+                      <label className="text-xs text-muted-foreground">{label}</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        value={equipmentEffects[key]}
+                        onChange={(e) => setEquipmentEffects((prev) => ({ ...prev, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {formState.category === 'consumable' && (
+              <div className="col-span-2 space-y-2">
+                <label className="text-sm font-medium">Effects</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Type</label>
+                    <Select value={consumableEffects.type} onValueChange={(v) => setConsumableEffects((prev) => ({ ...prev, type: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {CONSUMABLE_TYPES.map((t) => (
+                          <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Value</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="0"
+                      value={consumableEffects.value}
+                      onChange={(e) => setConsumableEffects((prev) => ({ ...prev, value: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Duration (s)</label>
+                    <Input
+                      type="number"
+                      step="1"
+                      placeholder="Optional"
+                      value={consumableEffects.duration}
+                      onChange={(e) => setConsumableEffects((prev) => ({ ...prev, duration: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>

@@ -22,7 +22,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 
 interface MissionRef {
@@ -40,14 +39,34 @@ const pmSchema = z.object({
 });
 type PMForm = z.infer<typeof pmSchema>;
 
-const EMPTY_INTERVALS = JSON.stringify([
+const TIMELINE_KEYS = ['4', '6', '8'] as const;
+type TimelineKey = typeof TIMELINE_KEYS[number];
+
+const DEFAULT_INTERVALS: IntervalStep[] = [
   { action: 'walk', durationSec: 300, label: 'Warm-up walk' },
   { action: 'run', durationSec: 60, label: 'Run 1' },
   { action: 'walk', durationSec: 90, label: 'Recovery walk' },
   { action: 'walk', durationSec: 300, label: 'Cool-down walk' },
-], null, 2);
+];
 
-const EMPTY_MAPPING = JSON.stringify({ '4': null, '6': null, '8': null }, null, 2);
+const DEFAULT_MAPPING: Record<TimelineKey, string> = { '4': 'off', '6': 'off', '8': 'off' };
+
+function mappingToState(raw: Record<string, number | null> | undefined): Record<TimelineKey, string> {
+  const result = { ...DEFAULT_MAPPING };
+  for (const key of TIMELINE_KEYS) {
+    const val = raw?.[key];
+    result[key] = val != null ? String(val) : 'off';
+  }
+  return result;
+}
+
+function stateToMapping(state: Record<TimelineKey, string>): Record<string, number | null> {
+  const result: Record<string, number | null> = {};
+  for (const key of TIMELINE_KEYS) {
+    result[key] = state[key] === 'off' ? null : parseInt(state[key], 10);
+  }
+  return result;
+}
 
 export default function ProgramMissionsPage() {
   const router = useRouter();
@@ -65,11 +84,9 @@ export default function ProgramMissionsPage() {
   const [deleteTarget, setDeleteTarget] = useState<ProgramMission | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Interval and mapping JSON fields
-  const [intervalsJson, setIntervalsJson] = useState(EMPTY_INTERVALS);
-  const [mappingJson, setMappingJson] = useState(EMPTY_MAPPING);
+  const [intervals, setIntervals] = useState<IntervalStep[]>(DEFAULT_INTERVALS);
+  const [mapping, setMapping] = useState<Record<TimelineKey, string>>(DEFAULT_MAPPING);
   const [useIntervals, setUseIntervals] = useState(true);
-  const [jsonError, setJsonError] = useState<string | null>(null);
 
   const form = useForm<PMForm>({ resolver: zodResolver(pmSchema) });
 
@@ -97,10 +114,9 @@ export default function ProgramMissionsPage() {
 
   function openCreate() {
     setEditing(null);
-    setIntervalsJson(EMPTY_INTERVALS);
-    setMappingJson(EMPTY_MAPPING);
+    setIntervals(DEFAULT_INTERVALS);
+    setMapping(DEFAULT_MAPPING);
     setUseIntervals(true);
-    setJsonError(null);
     form.reset({
       mission_id: '',
       week_number: 1,
@@ -113,10 +129,9 @@ export default function ProgramMissionsPage() {
 
   function openEdit(pm: ProgramMission) {
     setEditing(pm);
-    setIntervalsJson(pm.intervals ? JSON.stringify(pm.intervals, null, 2) : EMPTY_INTERVALS);
-    setMappingJson(JSON.stringify(pm.timeline_week_mapping || { '4': null, '6': null, '8': null }, null, 2));
+    setIntervals(pm.intervals ?? DEFAULT_INTERVALS);
+    setMapping(mappingToState(pm.timeline_week_mapping as Record<string, number | null> | undefined));
     setUseIntervals(pm.intervals !== null && pm.intervals !== undefined);
-    setJsonError(null);
     form.reset({
       mission_id: pm.mission_id,
       week_number: pm.week_number,
@@ -129,30 +144,14 @@ export default function ProgramMissionsPage() {
 
   async function onSubmit(values: PMForm) {
     if (!programId) return;
-    setJsonError(null);
-
-    let intervals: IntervalStep[] | null = null;
-    let timeline_week_mapping: Record<string, number | null>;
-
-    if (useIntervals) {
-      try {
-        intervals = JSON.parse(intervalsJson);
-      } catch {
-        setJsonError('Intervals: invalid JSON');
-        return;
-      }
-    }
-
-    try {
-      timeline_week_mapping = JSON.parse(mappingJson);
-    } catch {
-      setJsonError('Timeline mapping: invalid JSON');
-      return;
-    }
 
     setSaving(true);
     try {
-      const payload = { ...values, intervals, timeline_week_mapping };
+      const payload = {
+        ...values,
+        intervals: useIntervals ? intervals : null,
+        timeline_week_mapping: stateToMapping(mapping),
+      };
       if (editing) {
         await updateProgramMission(programId, editing.id, payload);
         toast({ title: 'Session updated' });
@@ -319,50 +318,114 @@ export default function ProgramMissionsPage() {
               </div>
 
               {/* Timeline week mapping */}
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Timeline Week Mapping (JSON)</label>
-                <Textarea
-                  rows={4}
-                  className="font-mono text-xs"
-                  value={mappingJson}
-                  onChange={(e) => setMappingJson(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Maps this session to a week in each timeline. Use null to exclude from a timeline.
-                  e.g. {'{"4": null, "6": 2, "8": 3}'} — excluded from 4-week, week 2 of 6-week, week 3 of 8-week.
-                </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Timeline Week Mapping</label>
+                <p className="text-xs text-muted-foreground">For each timeline length, choose which week this session falls in, or "Off" to exclude it.</p>
+                <div className="rounded-md border divide-y">
+                  {TIMELINE_KEYS.map((key) => {
+                    const maxWeek = parseInt(key, 10);
+                    return (
+                      <div key={key} className="flex items-center justify-between px-3 py-2">
+                        <span className="text-sm font-medium w-24">{key}-week plan</span>
+                        <Select
+                          value={mapping[key]}
+                          onValueChange={(v) => setMapping((prev) => ({ ...prev, [key]: v }))}
+                        >
+                          <SelectTrigger className="w-36">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="off">Off (excluded)</SelectItem>
+                            {Array.from({ length: maxWeek }, (_, i) => i + 1).map((w) => (
+                              <SelectItem key={w} value={String(w)}>Week {w}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Intervals */}
+              {/* Intervals step builder */}
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <label className="text-sm font-medium">Walk/Run Intervals</label>
                   <button
                     type="button"
                     onClick={() => setUseIntervals(!useIntervals)}
-                    className={`text-xs px-2 py-0.5 rounded border ${
-                      useIntervals ? 'bg-primary text-primary-foreground border-primary' : 'border-input'
+                    className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                      useIntervals ? 'bg-primary text-primary-foreground border-primary' : 'border-input text-muted-foreground'
                     }`}
                   >
                     {useIntervals ? 'Enabled' : 'Disabled (pure run)'}
                   </button>
                 </div>
+
                 {useIntervals && (
-                  <>
-                    <Textarea
-                      rows={10}
-                      className="font-mono text-xs"
-                      value={intervalsJson}
-                      onChange={(e) => setIntervalsJson(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Array of {'{ action: "walk"|"run", durationSec: number, label?: string }'}
-                    </p>
-                  </>
+                  <div className="space-y-2">
+                    {intervals.length > 0 && (
+                      <div className="rounded-md border divide-y">
+                        <div className="grid grid-cols-[90px_110px_1fr_auto] gap-2 px-3 py-1.5 bg-muted/40">
+                          <span className="text-xs font-medium text-muted-foreground">Action</span>
+                          <span className="text-xs font-medium text-muted-foreground">Duration (sec)</span>
+                          <span className="text-xs font-medium text-muted-foreground">Label</span>
+                          <span />
+                        </div>
+                        {intervals.map((step, i) => (
+                          <div key={i} className="grid grid-cols-[90px_110px_1fr_auto] gap-2 items-center px-3 py-1.5">
+                            <Select
+                              value={step.action}
+                              onValueChange={(v) => setIntervals((prev) => prev.map((s, j) => j === i ? { ...s, action: v as 'walk' | 'run' } : s))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="walk">Walk</SelectItem>
+                                <SelectItem value="run">Run</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Input
+                              type="number"
+                              min={1}
+                              className="h-8 text-xs"
+                              value={step.durationSec}
+                              onChange={(e) => setIntervals((prev) => prev.map((s, j) => j === i ? { ...s, durationSec: parseInt(e.target.value, 10) || 0 } : s))}
+                            />
+                            <Input
+                              className="h-8 text-xs"
+                              placeholder="Optional label"
+                              value={step.label ?? ''}
+                              onChange={(e) => setIntervals((prev) => prev.map((s, j) => j === i ? { ...s, label: e.target.value } : s))}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                              onClick={() => setIntervals((prev) => prev.filter((_, j) => j !== i))}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {intervals.length === 0 && (
+                      <p className="text-xs text-muted-foreground border border-dashed rounded p-3 text-center">No steps yet. Add one below.</p>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIntervals((prev) => [...prev, { action: 'walk', durationSec: 60, label: '' }])}
+                    >
+                      + Add Step
+                    </Button>
+                  </div>
                 )}
               </div>
-
-              {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

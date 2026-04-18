@@ -11,19 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-interface EncouragementAudio {
-  id: string;
-  label: string;
-  category: string;
-  audio_url: string;
-  transcript: string | null;
-  duration_s: number | null;
-  is_active: boolean;
-  sort_order: number;
-  created_at: string;
-}
+import type { EncouragementAudio } from '@/types';
 
 const schema = z.object({
   label: z.string().min(1, 'Label required'),
@@ -36,7 +26,8 @@ const schema = z.object({
 });
 type FormData = z.infer<typeof schema>;
 
-const CATEGORIES = ['general', 'warmup', 'effort', 'recovery', 'finish'];
+const CATEGORIES = ['general', 'warmup', 'effort', 'recovery', 'finish'] as const;
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function EncouragementPage() {
   const { ready } = useManageAuth();
@@ -163,7 +154,7 @@ export default function EncouragementPage() {
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
             {CATEGORIES.map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
+              <SelectItem key={c} value={c}>{capitalize(c)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -188,7 +179,7 @@ export default function EncouragementPage() {
             {filtered.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="font-medium">{item.label}</TableCell>
-                <TableCell>{item.category}</TableCell>
+                <TableCell>{capitalize(item.category)}</TableCell>
                 <TableCell>{item.is_active ? 'Yes' : 'No'}</TableCell>
                 <TableCell>{item.sort_order}</TableCell>
                 <TableCell>
@@ -234,7 +225,7 @@ export default function EncouragementPage() {
                         <SelectTrigger><SelectValue /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{capitalize(c)}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -279,7 +270,7 @@ export default function EncouragementPage() {
                 <FormField control={form.control} name="transcript" render={({ field }) => (
                   <FormItem className="col-span-2">
                     <FormLabel>Transcript</FormLabel>
-                    <FormControl><textarea {...field} rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" /></FormControl>
+                    <FormControl><Textarea rows={2} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "vercel-build": "next build"
+    "vercel-build": "next build",
+    "db:types": "cd ../../backend && npx supabase gen types typescript --linked > ../landing/stormrun/src/types/database.types.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
