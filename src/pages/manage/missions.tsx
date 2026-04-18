@@ -48,8 +48,7 @@ interface CatalogItem {
   category: string;
 }
 
-const MISSION_TYPES = ['run', 'walk', 'interval', 'rest'] as const;
-const DIFFICULTY_LEVELS = ['easy', 'moderate', 'hard', 'expert'] as const;
+const DIFFICULTY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
 const MISSION_STATUSES = ['draft', 'active', 'archived'] as const;
 const LOCOMOTION_TYPES = ['run', 'walk', 'walk_run'] as const;
 
@@ -61,7 +60,6 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const missionSchema = z.object({
-  type: z.enum(MISSION_TYPES, { required_error: 'Type required' }),
   title: z.string().min(1, 'Title required'),
   description: z.string().default(''),
   difficulty: z.enum(DIFFICULTY_LEVELS, { required_error: 'Difficulty required' }),
@@ -167,7 +165,7 @@ export default function MissionsPage() {
 
   function openCreate() {
     setEditing(null);
-    form.reset({ type: undefined, title: '', description: '', difficulty: undefined, estimated_time: 0, estimated_distance: 0, locomotion_type: null, status: 'draft', sort_order: 0, is_priority: false });
+    form.reset({ title: '', description: '', difficulty: undefined, estimated_time: 0, estimated_distance: 0, locomotion_type: null, status: 'draft', sort_order: 0, is_priority: false });
     parseRewards(null);
     setDialogOpen(true);
   }
@@ -175,7 +173,7 @@ export default function MissionsPage() {
   function openEdit(m: Mission) {
     setEditing(m);
     form.reset({
-      type: MISSION_TYPES.includes(m.type as typeof MISSION_TYPES[number]) ? m.type as typeof MISSION_TYPES[number] : undefined,
+
       title: m.title,
       description: m.description ?? '',
       difficulty: DIFFICULTY_LEVELS.includes(m.difficulty as typeof DIFFICULTY_LEVELS[number]) ? m.difficulty as typeof DIFFICULTY_LEVELS[number] : undefined,
@@ -311,7 +309,7 @@ export default function MissionsPage() {
             {missions.map((m) => (
               <TableRow key={m.id}>
                 <TableCell className="font-medium">{m.title}</TableCell>
-                <TableCell className="capitalize">{m.type}</TableCell>
+                <TableCell className="capitalize">{m.locomotion_type?.replace('_', ' / ') ?? '—'}</TableCell>
                 <TableCell className="capitalize">{m.difficulty}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[m.status] ?? 'bg-gray-100 text-gray-600'}`}>
@@ -330,7 +328,7 @@ export default function MissionsPage() {
             ))}
             {missions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">No missions yet.</TableCell>
+                <TableCell colSpan={7} className="text-center text-muted-foreground">No missions yet.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -356,20 +354,6 @@ export default function MissionsPage() {
                       <FormItem className="col-span-2">
                         <FormLabel>Title</FormLabel>
                         <FormControl><Input {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="type" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Type</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                          <FormControl><SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger></FormControl>
-                          <SelectContent>
-                            {MISSION_TYPES.map((t) => (
-                              <SelectItem key={t} value={t} className="capitalize">{t}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -403,7 +387,7 @@ export default function MissionsPage() {
                     )} />
                     <FormField control={form.control} name="locomotion_type" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Locomotion Type</FormLabel>
+                        <FormLabel>Type</FormLabel>
                         <Select
                           onValueChange={(v) => field.onChange(v === '_none' ? null : v)}
                           value={field.value ?? '_none'}

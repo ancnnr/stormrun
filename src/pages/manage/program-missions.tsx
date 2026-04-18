@@ -27,7 +27,6 @@ import { useToast } from '@/components/ui/use-toast';
 interface MissionRef {
   id: string;
   title: string;
-  type: string;
 }
 
 const pmSchema = z.object({
@@ -230,7 +229,6 @@ export default function ProgramMissionsPage() {
                 <TableRow>
                   <TableHead>Day</TableHead>
                   <TableHead>Mission</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Locomotion</TableHead>
                   <TableHead>Intervals</TableHead>
                   <TableHead>Sort</TableHead>
@@ -245,7 +243,6 @@ export default function ProgramMissionsPage() {
                     <TableRow key={pm.id}>
                       <TableCell>{pm.day_in_week}</TableCell>
                       <TableCell className="font-medium">{pm.missionTitle}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{pm.missionType}</TableCell>
                       <TableCell className="text-xs">{pm.locomotionType ?? '—'}</TableCell>
                       <TableCell className="text-xs">
                         {pm.intervals ? `${pm.intervals.length} steps` : '—'}
@@ -285,7 +282,7 @@ export default function ProgramMissionsPage() {
                     <FormControl><SelectTrigger><SelectValue placeholder="Select mission" /></SelectTrigger></FormControl>
                     <SelectContent>
                       {missions.map((m) => (
-                        <SelectItem key={m.id} value={m.id}>{m.title} ({m.type})</SelectItem>
+                        <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

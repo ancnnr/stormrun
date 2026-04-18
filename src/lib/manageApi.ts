@@ -111,7 +111,6 @@ export interface ProgramMission {
   intervals: IntervalStep[] | null;
   timeline_week_mapping: Record<string, number | null>;
   missionTitle: string;
-  missionType: string;
   missionDifficulty: string | null;
   locomotionType: string | null;
   created_at: string;
@@ -151,7 +150,7 @@ export async function listProgramMissions(programId: string): Promise<ProgramMis
 
 export async function addProgramMission(
   programId: string,
-  data: Omit<ProgramMission, 'id' | 'program_id' | 'created_at' | 'missionTitle' | 'missionType' | 'missionDifficulty' | 'locomotionType'>
+  data: Omit<ProgramMission, 'id' | 'program_id' | 'created_at' | 'missionTitle' | 'missionDifficulty' | 'locomotionType'>
 ): Promise<ProgramMission> {
   return apiFetch<ProgramMission>(`/api/admin/programs/${programId}/missions`, {
     method: 'POST',
