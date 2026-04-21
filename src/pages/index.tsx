@@ -3,13 +3,14 @@ import Head from "next/head";
 import Image from "next/image";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { 
-  Activity, 
-  MapPin, 
-  Zap, 
-  Users, 
-  Radio, 
-  Package, 
+import {
+  Activity,
+  MapPin,
+  Zap,
+  Users,
+  UserPlus,
+  Radio,
+  Package,
   Shield,
   TrendingUp,
   Globe,
@@ -429,6 +430,12 @@ function FeaturesSection() {
       title: "Progressive Difficulty",
       description: "Missions scale with your performance and faction rank.",
       color: "#1dffee",
+    },
+    {
+      icon: UserPlus,
+      title: "Community & Friends",
+      description: "Find friends by username or email, see their status (online / running / offline), and compete for best pace on missions you've both run. Your privacy controls let you decide what's visible to the public, just friends, or no one.",
+      color: "#b18cff",
     },
   ];
 

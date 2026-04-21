@@ -48,7 +48,7 @@ const NAV_GROUPS = [
       { id: 'mission-hub', label: 'Mission Hub' },
       { id: 'map', label: 'Map' },
       { id: 'prep-bay', label: 'Prep Bay' },
-      { id: 'factions', label: 'Factions' },
+      { id: 'community', label: 'Community' },
       { id: 'profile', label: 'Profile' },
       { id: 'programs', label: 'Programs' },
       { id: 'run', label: 'Run Experience' },
@@ -264,7 +264,7 @@ function Overview() {
         ['Mission Hub', 'Briefings from Audrey, active and recent missions, quick deploy.'],
         ['Map', 'Territory around the Shelter: missions, landmarks, hostile zones.'],
         ['Prep Bay', 'Loadout slots, perks, audio source, XP progression.'],
-        ['Factions', 'Standings with groups encountered; affects missions and rewards.'],
+        ['Community', 'Friends list, incoming requests, and activity feed. Privacy controls per field.'],
         ['Profile', 'Runner stats, achievements, run history.'],
       ]} />
     </DocSection>
@@ -395,21 +395,67 @@ function PrepBay() {
   );
 }
 
-function Factions() {
+function Community() {
   return (
-    <DocSection id="factions" kicker="07 · TAB" title="Factions">
-      <p className="text-muted-foreground mb-4">
-        Standings with the groups the runner has encountered. Faction reputation affects mission difficulty, available ops, and story branches.
+    <DocSection id="community" kicker="07 · TAB" title="Community">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        The Community tab is the social hub — friends, incoming requests, and a feed of recent friend activity. Three segment tabs open left-to-right: Activity → Friends → Requests. A numeric badge on the tab bar icon appears when there are unread friend requests.
       </p>
 
+      <Callout>
+        Screenshots below are placeholders. Replace each <code>.svg</code> file in{' '}
+        <code>public/docs/app/</code> with a same-named <code>.png</code> and update
+        the <code>src</code> props in this section.
+      </Callout>
+
+      <h3 className="font-semibold text-base mt-6 mb-1">Activity Feed</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Default tab. Shows a reverse-chronological feed of events from accepted friends: run completions (mission name, distance, pace) and achievement unlocks. Only visible to accepted friends — privacy-gated by each friend's settings.
+      </p>
       <PhoneGallery items={[
-        { src: '/docs/app/factions.png', caption: 'Factions · standings' },
+        { src: '/docs/app/community-activity.svg', caption: 'Activity · friend events' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-1">Friends List</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        All accepted friends with presence status badges (online / running / offline). Tapping a friend opens their profile. The <strong>+ Add Friend</strong> FAB (bottom-right) opens the search modal.
+      </p>
+      <PhoneGallery items={[
+        { src: '/docs/app/community-friends.svg', caption: 'Friends · list with status' },
+        { src: '/docs/app/community-add-friend.svg', caption: 'Add Friend · search modal' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-1">Friend Requests</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Incoming pending requests with Accept / Decline actions. The tab label shows a live count badge. Accepting moves the user to the Friends list immediately.
+      </p>
+      <PhoneGallery items={[
+        { src: '/docs/app/community-requests.svg', caption: 'Requests · pending list' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-1">Map Integration</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Friends with public or friends-visible territory appear on the Map tab as purple initials pins with an approximate territory circle (radius derived from km²). Capped at 20 friends for performance.
+      </p>
+      <PhoneGallery items={[
+        { src: '/docs/app/community-map-territory.svg', caption: 'Map · friend territory overlay' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-1">Privacy Settings</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Each runner controls visibility of five profile fields independently: public / friends / private. Settings live in the Profile tab's settings sheet under the "Privacy" section.
+      </p>
+      <PhoneGallery items={[
+        { src: '/docs/app/community-privacy-settings.svg', caption: 'Settings · privacy controls' },
       ]} />
 
       <KvTable rows={[
-        ['Reputation bar', 'Each faction shows a colored bar from Hostile → Neutral → Allied.'],
-        ['Mission impact', 'Hostile factions offer harder ops with better rewards; Allied factions unlock cooperative missions.'],
-        ['Events', 'Faction-triggered story events appear in Mission Hub when rep crosses a threshold.'],
+        ['Friend search', 'Search by username (partial match) or full email address. Results show friendship status — already-friends and pending requests are labelled and the Add button is disabled.'],
+        ['Presence status', '"online" on app foreground, "offline" on background, "running" during an active mission. Updated via PATCH /api/user/status. Friends see it on screen open (DB-only, no realtime push).'],
+        ['Privacy fields', 'Achievements · Run Times · Territory Map · Status · Profile. Each independently set to public / friends / private. Defaults: achievements and run times → friends; territory map and profile → public; status → friends.'],
+        ['Territory on map', 'Approximate circle: radius = √(territory_km² / π). Centered on friend\'s shelter. Shown only when privacy_territory_map permits.'],
+        ['Route leaderboard', 'After completing a mission run, a leaderboard entry is submitted automatically (best-effort, non-blocking). Viewable per-mission — your best pace vs. friends\' best pace vs. top public.'],
+        ['Activity feed', 'Populated by run completions and achievement unlocks. Only shown to accepted friends when privacy settings allow.'],
       ]} />
     </DocSection>
   );
@@ -849,7 +895,7 @@ export default function DocsPage() {
           <MissionHub />
           <MapTab />
           <PrepBay />
-          <Factions />
+          <Community />
           <Profile />
           <Programs />
           <RunExperience />
