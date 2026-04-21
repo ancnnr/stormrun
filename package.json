@@ -59,7 +59,7 @@
     "leaflet": "^1.9.4",
     "lodash.throttle": "^4.1.1",
     "lucide-react": "^0.451.0",
-    "next": "14.2.27",
+    "next": "14.2.35",
     "next-themes": "^0.3.0",
     "react": "^18",
     "react-dom": "^18",
