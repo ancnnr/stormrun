@@ -5,7 +5,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ["assets.co.dev", "images.unsplash.com"],
+    domains: ["assets.co.dev", "images.unsplash.com", "yadjafvylqitdhblhyao.supabase.co"],
   },
   webpack: (config, context) => {
     config.optimization.minimize = process.env.NEXT_PUBLIC_CO_DEV_ENV !== "preview";

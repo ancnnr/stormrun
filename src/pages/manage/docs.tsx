@@ -1,0 +1,881 @@
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useManageAuth } from '@/hooks/useManageAuth';
+import { ChevronLeft, X } from 'lucide-react';
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────────
+
+const LightboxContext = createContext<(src: string) => void>(() => {});
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <button
+        className="absolute top-4 right-4 text-white/70 hover:text-white transition-colors"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      <img
+        src={src}
+        alt=""
+        className="max-h-[90vh] max-w-[90vw] rounded-md shadow-2xl object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
+// ─── Nav structure ────────────────────────────────────────────────────────────
+
+const NAV_GROUPS = [
+  {
+    label: 'Mobile App',
+    items: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'boot-login', label: 'Boot & Login' },
+      { id: 'onboarding', label: 'Onboarding' },
+      { id: 'mission-hub', label: 'Mission Hub' },
+      { id: 'map', label: 'Map' },
+      { id: 'prep-bay', label: 'Prep Bay' },
+      { id: 'factions', label: 'Factions' },
+      { id: 'profile', label: 'Profile' },
+      { id: 'programs', label: 'Programs' },
+      { id: 'run', label: 'Run Experience' },
+    ],
+  },
+  {
+    label: 'Admin Portal',
+    items: [
+      { id: 'admin-overview', label: 'Overview' },
+      { id: 'admin-dashboard', label: 'Dashboard' },
+      { id: 'admin-missions', label: 'Missions' },
+      { id: 'admin-programs', label: 'Programs' },
+      { id: 'admin-users', label: 'Users' },
+      { id: 'admin-items', label: 'Items' },
+      { id: 'admin-encouragement', label: 'Encouragement Audio' },
+      { id: 'admin-bulk-grant', label: 'Bulk Grant' },
+      { id: 'admin-analytics', label: 'Geo Analytics' },
+    ],
+  },
+];
+
+// ─── Reusable layout atoms ────────────────────────────────────────────────────
+
+function PhoneFrame({ src, caption }: { src: string; caption?: string }) {
+  const openLightbox = useContext(LightboxContext);
+  return (
+    <figure className="flex flex-col items-center gap-2 flex-shrink-0">
+      <div
+        onClick={() => openLightbox(src)}
+        style={{
+          border: '8px solid #18181b',
+          borderRadius: 36,
+          overflow: 'hidden',
+          boxShadow: '0 0 0 2px #3f3f46, 0 16px 48px rgba(0,0,0,0.25)',
+          background: '#000',
+          width: 160,
+          cursor: 'zoom-in',
+        }}
+      >
+        <img
+          src={src}
+          alt={caption ?? ''}
+          loading="lazy"
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+        />
+      </div>
+      {caption && (
+        <figcaption className="text-xs text-muted-foreground text-center max-w-[160px]">
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+}
+
+function BrowserFrame({ src, caption }: { src: string; caption?: string }) {
+  const openLightbox = useContext(LightboxContext);
+  return (
+    <figure className="flex flex-col gap-2 flex-shrink-0 w-full">
+      <div
+        style={{
+          border: '1px solid hsl(var(--border))',
+          borderRadius: 8,
+          overflow: 'hidden',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
+          cursor: 'zoom-in',
+        }}
+        onClick={() => openLightbox(src)}
+      >
+        <div
+          style={{
+            background: '#f4f4f5',
+            padding: '8px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            borderBottom: '1px solid #e4e4e7',
+          }}
+        >
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b', display: 'inline-block' }} />
+          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
+          <span
+            style={{
+              flex: 1,
+              marginLeft: 8,
+              background: '#fff',
+              border: '1px solid #e4e4e7',
+              borderRadius: 4,
+              padding: '2px 8px',
+              fontSize: 11,
+              color: '#71717a',
+            }}
+          >
+            StormRun Admin
+          </span>
+        </div>
+        <img
+          src={src}
+          alt={caption ?? ''}
+          loading="lazy"
+          style={{ display: 'block', width: '100%', height: 'auto' }}
+        />
+      </div>
+      {caption && (
+        <figcaption className="text-xs text-muted-foreground">{caption}</figcaption>
+      )}
+    </figure>
+  );
+}
+
+function PhoneGallery({ items }: { items: { src: string; caption?: string }[] }) {
+  return (
+    <div className="flex flex-wrap gap-6 my-6">
+      {items.map((it) => (
+        <PhoneFrame key={it.src} src={it.src} caption={it.caption} />
+      ))}
+    </div>
+  );
+}
+
+function AdminGallery({ items }: { items: { src: string; caption?: string }[] }) {
+  return (
+    <div className="grid grid-cols-1 gap-6 my-6 lg:grid-cols-2">
+      {items.map((it) => (
+        <BrowserFrame key={it.src} src={it.src} caption={it.caption} />
+      ))}
+    </div>
+  );
+}
+
+function AdminGalleryWide({ items }: { items: { src: string; caption?: string }[] }) {
+  return (
+    <div className="flex flex-col gap-6 my-6">
+      {items.map((it) => (
+        <BrowserFrame key={it.src} src={it.src} caption={it.caption} />
+      ))}
+    </div>
+  );
+}
+
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-semibold tracking-widest uppercase text-primary mb-2">
+      {children}
+    </p>
+  );
+}
+
+function KvTable({ rows }: { rows: [string, React.ReactNode][] }) {
+  return (
+    <table className="w-full text-sm border-collapse my-4">
+      <tbody>
+        {rows.map(([k, v], i) => (
+          <tr key={i} className="border-t border-border">
+            <td className="py-2 pr-4 font-medium text-foreground align-top w-44 whitespace-nowrap">{k}</td>
+            <td className="py-2 text-muted-foreground">{v}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function Callout({ children, variant = 'info' }: { children: React.ReactNode; variant?: 'info' | 'warn' }) {
+  const colors = variant === 'warn'
+    ? 'bg-amber-50 border-amber-300 text-amber-900'
+    : 'bg-blue-50 border-blue-300 text-blue-900';
+  return (
+    <div className={`border rounded-md px-4 py-3 text-sm my-4 ${colors}`}>
+      {children}
+    </div>
+  );
+}
+
+function DocSection({ id, kicker, title, children }: {
+  id: string;
+  kicker: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} data-section={id} className="mb-16 scroll-mt-8">
+      <Kicker>{kicker}</Kicker>
+      <h2 className="text-2xl font-bold mb-4">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+// ─── Content sections ─────────────────────────────────────────────────────────
+
+function Overview() {
+  return (
+    <DocSection id="overview" kicker="01 · OVERVIEW" title="What StormRun is">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        StormRun is an audio-driven running companion. You put on headphones, step outside your Shelter, and <strong>Audrey</strong> — your in-ear AI operator — narrates a mission around whatever streets are outside your door.
+      </p>
+      <p className="text-muted-foreground mb-4">
+        The app sits between a running tracker, an audio drama, and a light RPG. GPS and pace data drive the fiction: pick up the pace and a chase resolves; slow down and Audrey checks in. When you can't run outdoors, missions are playable in <strong>Simulated Mode</strong> — the story runs on a timer against your profile pace, no GPS required.
+      </p>
+
+      <KvTable rows={[
+        ['Core loop', 'Briefing → Run (live or simulated) → Debrief → Rewards → Hub'],
+        ['Session length', 'Typically 15–35 min, scaled from profile preference'],
+        ['Permissions', <><code>FINE_LOCATION</code>, <code>ACTIVITY_RECOGNITION</code>, background audio, optional notifications</>],
+        ['Offline', 'Cached missions + simulated mode playable fully offline'],
+        ['Platform', 'Android (Expo React Native)'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Five tabs, one goal</h3>
+      <KvTable rows={[
+        ['Mission Hub', 'Briefings from Audrey, active and recent missions, quick deploy.'],
+        ['Map', 'Territory around the Shelter: missions, landmarks, hostile zones.'],
+        ['Prep Bay', 'Loadout slots, perks, audio source, XP progression.'],
+        ['Factions', 'Standings with groups encountered; affects missions and rewards.'],
+        ['Profile', 'Runner stats, achievements, run history.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function BootLogin() {
+  return (
+    <DocSection id="boot-login" kicker="02 · FIRST TOUCH" title="Boot & Login">
+      <p className="text-muted-foreground mb-4">
+        Cold launch shows a branded comms-booting splash. A session token is checked against secure storage; if valid, the runner is sent straight to Mission Hub. Otherwise they land on the Login / Register screen.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/app-open.png', caption: 'Splash · comms boot' },
+        { src: '/docs/app/login.png', caption: 'Login / Register' },
+      ]} />
+
+      <KvTable rows={[
+        ['Splash', '~1.2 s minimum while auth state resolves; longer if token refresh is in flight.'],
+        ['Validation', 'Email format, password ≥ 8 chars. Errors appear inline; submit stays disabled until valid.'],
+        ['Password reveal', '"SHOW" toggles masked/plaintext; does not persist.'],
+        ['Failure modes', 'Network errors show a retry banner; 401 clears the token and re-renders login.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function Onboarding() {
+  return (
+    <DocSection id="onboarding" kicker="03 · ONBOARDING" title="Onboarding">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        Onboarding is framed as Audrey's first transmission. Five steps, ~2 minutes. Audio narration plays throughout, with live transcripts at the bottom of each screen.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/onboarding/step1-welcome.png', caption: '1 · Welcome · Systems online' },
+        { src: '/docs/onboarding/step2-audrey.png', caption: '2 · Audrey intro · Protocol removed' },
+        { src: '/docs/onboarding/step3-vitals.png', caption: '3 · Vitals · Callsign & fitness' },
+        { src: '/docs/onboarding/step4-shelter.png', caption: '4 · Shelter · Drop your pin' },
+        { src: '/docs/onboarding/step5-mission.png', caption: '5 · Route preview · First mission' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Step-by-step</h3>
+      <KvTable rows={[
+        ['1 · Welcome', 'Audrey\'s first words: "Systems online. This is Audrey." Headphone icon. Single Continue CTA. Nothing collected.'],
+        ['2 · Audrey intro', '"Grey Army protocol removed. This is Audrey, your survival implant." Sets narrative tone.'],
+        ['3 · Vitals', 'Callsign (username), profile avatar, age/gender/weight/height, experience level (Beginner / Intermediate / Advanced).'],
+        ['4 · Shelter', '"Storms intensifying. We need a shelter." Runner confirms current GPS location or picks a different one on the map. All runs start and end here.'],
+        ['5 · Route preview', 'First mission ("Storm Wall Breach") is pre-assigned. Route shown on map with distance/time estimate. Runner accepts to begin.'],
+      ]} />
+
+      <Callout variant="warn">
+        Location permission is requested at the Shelter step — not on app open. This means the runner understands <em>why</em> before granting it.
+      </Callout>
+    </DocSection>
+  );
+}
+
+function MissionHub() {
+  return (
+    <DocSection id="mission-hub" kicker="04 · TAB" title="Mission Hub">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        The landing tab. Audrey's live briefing sits at the top; below it, one featured mission, side ops, and a recap of the last run.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/mission-hub-1.png', caption: 'Mission Hub · featured' },
+        { src: '/docs/app/mission-hub-2.png', caption: 'Priority mission detail' },
+        { src: '/docs/app/mission-hub-3.png', caption: 'Side ops list' },
+        { src: '/docs/app/mission-hub-4.png', caption: 'Last run recap' },
+      ]} />
+
+      <KvTable rows={[
+        ['Audrey briefing', 'Updated each launch. Tone shifts with faction standing and weather; a waveform signals new VO.'],
+        ['Priority mission', 'Story beat pinned by the narrative director. Includes chapter, estimated distance/time, and hazard warnings.'],
+        ['Side ops', 'Short, procedurally-generated missions around the Shelter. Labeled by type (supply, scout, free run).'],
+        ['Last run', 'Tap to reopen debrief summary. A way back into the narrative without deploying.'],
+        ['Deploy CTA', '"BEGIN MISSION" opens the route briefing sheet. Disabled if the runner is already on an active run.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function MapTab() {
+  return (
+    <DocSection id="map" kicker="05 · TAB" title="Map">
+      <p className="text-muted-foreground mb-4">
+        A dark-themed map centered on the Shelter pin. Shows mission waypoints, enemy territory overlays, and completed run trails.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/map.png', caption: 'Map · Shelter territory' },
+      ]} />
+
+      <KvTable rows={[
+        ['Shelter pin', 'Green house icon at the runner\'s set home location. Tapping shows the Shelter radius.'],
+        ['Mission markers', 'Colored icons by mission type; pulsing ring on the active mission.'],
+        ['Territory', 'Faction-controlled zones shown as colored overlays with varying opacity based on control strength.'],
+        ['Run trails', 'Previous runs drawn as faint lines on the map, fading over time.'],
+        ['Zoom', 'Standard pinch-to-zoom; double-tap centers on Shelter.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function PrepBay() {
+  return (
+    <DocSection id="prep-bay" kicker="06 · TAB" title="Prep Bay">
+      <p className="text-muted-foreground mb-4">
+        Loadout management. Runners equip consumables for runs, manage perk slots, and track XP progression.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/prep-bay.png', caption: 'Prep Bay · loadout' },
+        { src: '/docs/app/prep-bay-2.png', caption: 'Consumable detail' },
+        { src: '/docs/app/prep-bay-2b.png', caption: 'Item equipped' },
+      ]} />
+
+      <KvTable rows={[
+        ['Loadout slots', 'Four equipment slots (head, body, feet, accessory). Items affect run stats and narrative options.'],
+        ['Consumables', 'Single-use items equipped before a run. Tap an item to see effects and quantity.'],
+        ['Perks', 'Passive abilities unlocked through XP. Displayed as a grid with tier progress.'],
+        ['XP bar', 'Global runner XP and current rank. Fills based on distance, pace, and mission completion.'],
+        ['Audio source', 'Selected music service (Spotify / Apple Music / Local) shown and switchable from here.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function Factions() {
+  return (
+    <DocSection id="factions" kicker="07 · TAB" title="Factions">
+      <p className="text-muted-foreground mb-4">
+        Standings with the groups the runner has encountered. Faction reputation affects mission difficulty, available ops, and story branches.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/factions.png', caption: 'Factions · standings' },
+      ]} />
+
+      <KvTable rows={[
+        ['Reputation bar', 'Each faction shows a colored bar from Hostile → Neutral → Allied.'],
+        ['Mission impact', 'Hostile factions offer harder ops with better rewards; Allied factions unlock cooperative missions.'],
+        ['Events', 'Faction-triggered story events appear in Mission Hub when rep crosses a threshold.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function Profile() {
+  return (
+    <DocSection id="profile" kicker="08 · TAB" title="Profile">
+      <p className="text-muted-foreground mb-4">
+        Runner stats, achievement tracking, and run history. Also the entry point for settings.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/profile.png', caption: 'Profile · stats' },
+      ]} />
+
+      <KvTable rows={[
+        ['Stats', 'Total distance, total time, missions completed, best pace, longest run.'],
+        ['Achievements', 'Badge grid — locked badges show silhouettes with completion criteria.'],
+        ['Run history', 'Chronological list of completed runs with date, distance, and mission name.'],
+        ['Avatar', 'Chosen during onboarding; changeable from Profile. Pre-set art or upload.'],
+        ['Settings entry', 'Gear icon in the top-right opens the settings sheet.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function Programs() {
+  return (
+    <DocSection id="programs" kicker="09 · PROGRAMS" title="Programs">
+      <p className="text-muted-foreground mb-4">
+        Structured training programs containing ordered sessions. Each session is a sequence of missions played over multiple runs, designed around a fitness or narrative arc.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/program-1.png', caption: 'Program list' },
+        { src: '/docs/app/program-2.png', caption: 'Program detail' },
+        { src: '/docs/app/program-3.png', caption: 'Session view' },
+      ]} />
+
+      <KvTable rows={[
+        ['Program', 'A named training arc with a cover, description, total weeks, and difficulty rating.'],
+        ['Session', 'A single day\'s workout within a program. Contains one or more ordered missions.'],
+        ['Progress', 'Completed sessions are checked off; the active session is highlighted.'],
+        ['Lock', 'Future sessions are locked until prior sessions are completed in order.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function RunExperience() {
+  return (
+    <DocSection id="run" kicker="10 · RUN EXPERIENCE" title="Live & Simulated Runs">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        The run is the core product. Two modes: <strong>Live</strong> (GPS-tracked outdoors) and <strong>Simulated</strong> (timer-based, no GPS). Both play the same mission audio, but live mode reacts to actual pace and location.
+      </p>
+
+      <h3 className="font-semibold text-base mt-4 mb-2">Route setup</h3>
+      <PhoneGallery items={[
+        { src: '/docs/app/route-1.png', caption: 'Route · briefing' },
+        { src: '/docs/app/route-2.png', caption: 'Route · map preview' },
+        { src: '/docs/app/route-3.png', caption: 'Route · accept' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">During the run</h3>
+      <PhoneGallery items={[
+        { src: '/docs/app/start-run.png', caption: 'Live · run active' },
+        { src: '/docs/app/start-run-test.png', caption: 'Simulated · run active' },
+        { src: '/docs/app/mid-run-test-1.png', caption: 'Simulated · mid run' },
+        { src: '/docs/app/mission-complete.png', caption: 'Mission complete' },
+      ]} />
+
+      <KvTable rows={[
+        ['Live mode', 'GPS tracks position. Pace triggers audio cues. Route deviations trigger Audrey commentary.'],
+        ['Simulated mode', 'Runs on a countdown timer calibrated to the runner\'s profile pace. No GPS needed. Identical audio.'],
+        ['Audio ducking', 'Audrey\'s voice ducks music by ~20 dB during narration, then fades music back up.'],
+        ['Debrief', 'After finishing: distance, time, pace, XP earned, items collected, story beat played.'],
+        ['Abandon', 'Long-press the stop button to abandon; partial XP is still awarded.'],
+      ]} />
+
+      <Callout>
+        <strong>Chase mechanic:</strong> If the runner slows below target pace during a chase sequence, Audrey warns them. If pace doesn't recover within the window, the chase resolves as a failure (story continues, but with a different branch).
+      </Callout>
+    </DocSection>
+  );
+}
+
+// ─── Admin sections ───────────────────────────────────────────────────────────
+
+function AdminOverview() {
+  return (
+    <DocSection id="admin-overview" kicker="ADMIN · 01" title="Admin Portal Overview">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        The admin portal is a web-based management interface for StormRun operators. It provides full control over missions, programs, users, items, and audio content.
+      </p>
+
+      <BrowserFrame src="/docs/admin/login.png" caption="Admin login" />
+
+      <KvTable rows={[
+        ['Access', 'Requires a manager or admin account. Token stored in sessionStorage as sr_token.'],
+        ['URL', '/manage — not publicly linked'],
+        ['Roles', 'admin (full access), manager (same access, used for day-to-day ops)'],
+        ['Sections', 'Dashboard · Missions · Programs · Users · Items · Item Balance · Bulk Grant · Encouragement Audio · Geo Analytics'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminDashboard() {
+  return (
+    <DocSection id="admin-dashboard" kicker="ADMIN · 02" title="Dashboard">
+      <p className="text-muted-foreground mb-4">
+        High-level metrics: active users, total runs, distance covered, and recent activity. The starting view after login.
+      </p>
+
+      <AdminGallery items={[
+        { src: '/docs/admin/dashboard-1.png', caption: 'Dashboard · metrics' },
+        { src: '/docs/admin/dashboard-2.png', caption: 'Dashboard · recent activity' },
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminMissions() {
+  return (
+    <DocSection id="admin-missions" kicker="ADMIN · 03" title="Missions">
+      <p className="text-muted-foreground mb-4">
+        Create and manage missions. Each mission has metadata, objectives, rewards, and an ordered sequence of audio events that play during the run.
+      </p>
+
+      <h3 className="font-semibold text-base mt-4 mb-2">Mission list & creation</h3>
+      <AdminGallery items={[
+        { src: '/docs/admin/missions-1.png', caption: 'Mission list' },
+        { src: '/docs/admin/mission-create-1.png', caption: 'Create mission · part 1' },
+        { src: '/docs/admin/mission-create-2.png', caption: 'Create mission · part 2' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Edit & audio events</h3>
+      <AdminGallery items={[
+        { src: '/docs/admin/mission-edit-1.png', caption: 'Mission edit' },
+        { src: '/docs/admin/mission-edit-2.png', caption: 'Mission edit · continued' },
+        { src: '/docs/admin/mission-audio-events.png', caption: 'Audio events list' },
+        { src: '/docs/admin/mission-audio-event-edit.png', caption: 'Audio event edit' },
+      ]} />
+
+      <KvTable rows={[
+        ['Mission fields', 'Title, type, description, objectives, rewards, difficulty, estimated time/distance, hazards, priority flag, sort order.'],
+        ['Audio events', 'Ordered sequence of audio cues attached to a mission. Each event has a trigger type (distance, time, pace) and a trigger value.'],
+        ['Trigger types', 'distance_km (fires when runner reaches X km), time_seconds (fires at X seconds elapsed), pace events.'],
+        ['Priority', 'Toggle is_priority to pin the mission to the top of Mission Hub for all users.'],
+        ['Sort order', 'Integer; lower numbers appear higher in side ops lists.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminPrograms() {
+  return (
+    <DocSection id="admin-programs" kicker="ADMIN · 04" title="Programs">
+      <p className="text-muted-foreground mb-4">
+        Manage training programs and their sessions. Each session is an ordered list of missions.
+      </p>
+
+      <AdminGallery items={[
+        { src: '/docs/admin/programs-1.png', caption: 'Programs list' },
+        { src: '/docs/admin/programs-sessions.png', caption: 'Program sessions' },
+        { src: '/docs/admin/programs-edit-session-1.png', caption: 'Edit session · part 1' },
+        { src: '/docs/admin/programs-edit-session-2.png', caption: 'Edit session · part 2' },
+      ]} />
+
+      <KvTable rows={[
+        ['Program fields', 'Name, description, difficulty, total weeks, cover image.'],
+        ['Session fields', 'Name, description, order index, list of missions (ordered).'],
+        ['Mission order', 'Within a session, missions are played in sequence. Reorder with drag handles.'],
+        ['Publish', 'Programs are not visible to app users until published. Drafts can be edited freely.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminUsers() {
+  return (
+    <DocSection id="admin-users" kicker="ADMIN · 05" title="Users">
+      <p className="text-muted-foreground mb-4">
+        View all registered users, inspect their run history, and manage their roles and item balances.
+      </p>
+
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/users.png', caption: 'User list' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Expanded user view</h3>
+      <AdminGallery items={[
+        { src: '/docs/admin/users-expanded-1.png', caption: 'User profile & vitals' },
+        { src: '/docs/admin/users-expanded-2.png', caption: 'Run history' },
+        { src: '/docs/admin/users-expanded-3.png', caption: 'Missions completed' },
+        { src: '/docs/admin/users-expanded-4.png', caption: 'Item inventory' },
+        { src: '/docs/admin/users-expanded-5.png', caption: 'Item balance detail' },
+        { src: '/docs/admin/users-expanded-6.png', caption: 'Admin actions' },
+      ]} />
+
+      <KvTable rows={[
+        ['Roles', 'user (default), test, manager, admin. Role changes take effect immediately.'],
+        ['Run history', 'Every run with date, distance, time, pace, and mission name.'],
+        ['Item inventory', 'Items the user holds; admin can add or remove individual items.'],
+        ['Reset', 'Admins can reset a user\'s onboarding state (shelter, vitals) from the expanded view.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminItems() {
+  return (
+    <DocSection id="admin-items" kicker="ADMIN · 06" title="Items & Item Balance">
+      <p className="text-muted-foreground mb-4">
+        Define collectible items and review the global distribution of items across all users.
+      </p>
+
+      <h3 className="font-semibold text-base mt-4 mb-2">Item management</h3>
+      <AdminGallery items={[
+        { src: '/docs/admin/items-1.png', caption: 'Item list' },
+        { src: '/docs/admin/items-create.png', caption: 'Create item' },
+        { src: '/docs/admin/items-edit.png', caption: 'Edit item' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Item balance</h3>
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/itembalance-1.png', caption: 'Item balance · distribution across users' },
+      ]} />
+
+      <KvTable rows={[
+        ['Item fields', 'Name, description, type (consumable/equipment), rarity, effects, icon.'],
+        ['Effects', 'Structured JSON defining stat modifiers applied during a run (e.g. +10% pace threshold, +5% XP).'],
+        ['Balance view', 'Aggregated view of how many of each item are held across all users. Useful for detecting economy imbalances.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminEncouragement() {
+  return (
+    <DocSection id="admin-encouragement" kicker="ADMIN · 07" title="Encouragement Audio">
+      <p className="text-muted-foreground mb-4">
+        Upload and manage short Audrey audio clips that play during runs to motivate the runner. These are separate from mission audio events — they're generic encouragement that can play in any run.
+      </p>
+
+      <AdminGallery items={[
+        { src: '/docs/admin/encouragement-audio-1.png', caption: 'Encouragement audio list' },
+        { src: '/docs/admin/encouragement-audio-add.png', caption: 'Add encouragement audio' },
+        { src: '/docs/admin/encouragement-audio-edit.png', caption: 'Edit encouragement audio' },
+      ]} />
+
+      <KvTable rows={[
+        ['Fields', 'Label, category, audio file (uploaded to Supabase Storage), transcript, duration, active toggle, sort order.'],
+        ['Category', 'Groups clips by use (e.g. "pace_drop", "halfway", "final_push"). The run engine selects clips by category at the right moment.'],
+        ['Active toggle', 'Inactive clips are never played. Use this to A/B or retire old recordings.'],
+        ['Transcript', 'Displayed as subtitles during playback in the app.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminBulkGrant() {
+  return (
+    <DocSection id="admin-bulk-grant" kicker="ADMIN · 08" title="Bulk Grant">
+      <p className="text-muted-foreground mb-4">
+        Grant items to multiple users at once. Useful for rewards, beta incentives, or correcting item loss bugs.
+      </p>
+
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/bulk-grant.png', caption: 'Bulk grant · select users and items' },
+      ]} />
+
+      <KvTable rows={[
+        ['Target', 'Select individual users, a role group (e.g. all "test" users), or all users.'],
+        ['Items', 'Choose one or more items and quantities to grant.'],
+        ['Confirmation', 'Preview shows total grants before executing. Action is not reversible from the UI (requires DB edit).'],
+      ]} />
+
+      <Callout variant="warn">
+        Bulk grant cannot be undone from the admin portal. Double-check the target and quantity before confirming.
+      </Callout>
+    </DocSection>
+  );
+}
+
+function AdminAnalytics() {
+  return (
+    <DocSection id="admin-analytics" kicker="ADMIN · 09" title="Geo Analytics">
+      <p className="text-muted-foreground mb-4">
+        A heatmap and trail visualization of all runs, overlaid on a map. Shows where runners are actually going — useful for mission route design and identifying dead zones.
+      </p>
+
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/geo-analytics.png', caption: 'Geo analytics · run heatmap' },
+      ]} />
+
+      <KvTable rows={[
+        ['Heatmap', 'Density of run activity by geographic area. Brighter = more runs through that point.'],
+        ['Trails', 'Individual run paths can be toggled on to see actual routes taken.'],
+        ['Filters', 'Filter by date range, user role, or mission type.'],
+        ['Use cases', 'Identify popular routes for new missions, find areas with no coverage, detect route generation edge cases.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+
+function Sidebar({ active, onJump }: { active: string; onJump: (id: string) => void }) {
+  return (
+    <aside
+      className="hidden lg:flex flex-col gap-1 w-56 flex-shrink-0 sticky top-0 self-start overflow-y-auto"
+      style={{ maxHeight: '100vh', paddingTop: 24, paddingBottom: 24 }}
+    >
+      <Link
+        href="/manage/dashboard"
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-4 transition-colors"
+      >
+        <ChevronLeft className="w-3 h-3" />
+        Back to Admin
+      </Link>
+
+      <div className="font-bold text-sm tracking-tight mb-4">StormRun Docs</div>
+
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label} className="mb-4">
+          <div className="text-[10px] font-semibold tracking-widest uppercase text-muted-foreground mb-1 px-2">
+            {group.label}
+          </div>
+          {group.items.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onJump(item.id)}
+              className={`w-full text-left px-2 py-1 rounded text-sm transition-colors ${
+                active === item.id
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
+export default function DocsPage() {
+  const { ready } = useManageAuth();
+  const [active, setActive] = useState('overview');
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const sections = Array.from(document.querySelectorAll('[data-section]')) as HTMLElement[];
+
+    const onScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY + 140;
+        let current = sections[0]?.dataset.section ?? 'overview';
+        for (const s of sections) {
+          if (s.offsetTop <= y) current = s.dataset.section ?? current;
+        }
+        setActive(current);
+        ticking.current = false;
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const jump = (id: string) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    window.scrollTo({ top: el.offsetTop - 24, behavior: 'smooth' });
+    setActive(id);
+  };
+
+  if (!ready) return null;
+
+  return (
+    <LightboxContext.Provider value={setLightboxSrc}>
+    {lightboxSrc && <Lightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+    <div className="min-h-screen bg-background">
+      {/* Top bar */}
+      <nav className="border-b bg-card px-6 py-3 flex items-center gap-4 sticky top-0 z-10">
+        <span className="font-bold text-sm tracking-tight">StormRun Admin</span>
+        <span className="text-muted-foreground text-sm">/</span>
+        <span className="text-sm font-medium">Documentation</span>
+        <div className="ml-auto">
+          <Link href="/manage/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            ← Back to dashboard
+          </Link>
+        </div>
+      </nav>
+
+      <div className="flex max-w-7xl mx-auto px-6 gap-12">
+        <Sidebar active={active} onJump={jump} />
+
+        {/* Main content */}
+        <main className="flex-1 py-10 min-w-0">
+          {/* Cover */}
+          <div className="mb-16 pb-10 border-b">
+            <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">
+              FUNCTIONAL DOCUMENTATION · v0.1
+            </p>
+            <h1 className="text-4xl font-bold mb-4">StormRun</h1>
+            <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed mb-6">
+              A complete walkthrough of the Android app and admin portal. Written for product, design, and new engineers who need to get oriented fast.
+            </p>
+            <div className="flex flex-wrap gap-6 text-sm">
+              {[
+                ['Platform', 'Android (Expo RN)'],
+                ['Version', '0.1.0 · build 42'],
+                ['Last updated', 'Apr 20 · 2026'],
+                ['Access', 'Logged-in admin / manager'],
+              ].map(([k, v]) => (
+                <div key={k} className="flex flex-col gap-0.5">
+                  <span className="text-muted-foreground text-xs">{k}</span>
+                  <span className="font-medium">{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Overview />
+          <BootLogin />
+          <Onboarding />
+          <MissionHub />
+          <MapTab />
+          <PrepBay />
+          <Factions />
+          <Profile />
+          <Programs />
+          <RunExperience />
+
+          <div className="border-t my-10 pt-10">
+            <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-8">
+              ADMIN PORTAL
+            </p>
+          </div>
+
+          <AdminOverview />
+          <AdminDashboard />
+          <AdminMissions />
+          <AdminPrograms />
+          <AdminUsers />
+          <AdminItems />
+          <AdminEncouragement />
+          <AdminBulkGrant />
+          <AdminAnalytics />
+
+          <div className="border-t mt-16 pt-8 text-sm text-muted-foreground">
+            StormRun Functional Documentation · Internal use only.
+          </div>
+        </main>
+      </div>
+    </div>
+    </LightboxContext.Provider>
+  );
+}

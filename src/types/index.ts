@@ -1,0 +1,35 @@
+import type { Database } from './database.types'
+
+export type { Database }
+
+type Tables = Database['public']['Tables']
+
+export type Achievement = Tables['achievements']['Row']
+export type EncouragementAudio = Tables['encouragement_audio']['Row']
+export type Item = Tables['items']['Row']
+export type MissionAudioEvent = Tables['mission_audio_events']['Row']
+export type MissionRoute = Tables['mission_routes']['Row']
+export type Mission = Tables['missions']['Row']
+export type Profile = Tables['profiles']['Row']
+export type ProgramMission = Tables['program_missions']['Row']
+export type Program = Tables['programs']['Row']
+export type UserAchievement = Tables['user_achievements']['Row']
+export type UserInventory = Tables['user_inventory']['Row']
+export type UserLoadout = Tables['user_loadout']['Row']
+export type UserMission = Tables['user_missions']['Row']
+export type UserProgramEnrollment = Tables['user_program_enrollments']['Row']
+export type UserProgramSession = Tables['user_program_sessions']['Row']
+export type UserSettings = Tables['user_settings']['Row']
+export type UserStats = Tables['user_stats']['Row']
+export type UserTerritory = Tables['user_territories']['Row']
+
+export type MissionInsert = Tables['missions']['Insert']
+export type MissionUpdate = Tables['missions']['Update']
+export type ProgramInsert = Tables['programs']['Insert']
+export type ProgramUpdate = Tables['programs']['Update']
+export type ProgramMissionInsert = Tables['program_missions']['Insert']
+export type ProgramMissionUpdate = Tables['program_missions']['Update']
+export type ItemInsert = Tables['items']['Insert']
+export type ItemUpdate = Tables['items']['Update']
+export type EncouragementAudioInsert = Tables['encouragement_audio']['Insert']
+export type EncouragementAudioUpdate = Tables['encouragement_audio']['Update']

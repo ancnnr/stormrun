@@ -119,7 +119,7 @@ export default function Home() {
               className="mb-2 flex justify-center"
             >
               <Image
-                src="https://assets.co.dev/2e3046f2-4707-4d97-af0a-c91172d86d90/stormrunlogoglow-67a324b.png"
+                src="https://yadjafvylqitdhblhyao.supabase.co/storage/v1/object/public/img_assets/SR_landing_logo.webp"
                 alt="StormRun Logo"
                 width={600}
                 height={200}
