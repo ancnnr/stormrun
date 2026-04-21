@@ -34,6 +34,20 @@ This is a Codev template project that includes:
 - `styles/`: Global style (global.css)
 - `utils/`: Utility functions and helpers
 
+## Documentation page (`/manage/docs`)
+
+An internal, auth-protected documentation page covering the mobile app and admin portal is available at `/manage/docs`. It is linked from the admin nav as **Docs** and is only visible to logged-in admin/manager users.
+
+**Screenshots** are served as static assets from `public/docs/`:
+
+| Folder | Contents |
+|--------|----------|
+| `public/docs/app/` | Mobile app screenshots (tabs, run experience) |
+| `public/docs/onboarding/` | Onboarding flow (`step1-welcome.png` … `step5-mission.png`) |
+| `public/docs/admin/` | Admin portal screenshots |
+
+To add or update screenshots, copy the new PNG into the appropriate `public/docs/` subfolder, then reference it in `src/pages/manage/docs.tsx`. See `../CLAUDE.md` for the full step-by-step update guide.
+
 ## Learn More
 
 To learn more about the technologies used in this template, check out the following resources:

@@ -38,7 +38,15 @@ export function ManageLayout({ children }: { children: ReactNode }) {
             {link.label}
           </Link>
         ))}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          <Link
+            href="/manage/docs"
+            className={`text-sm transition-colors hover:text-primary ${
+              router.pathname === '/manage/docs' ? 'text-primary' : 'text-muted-foreground'
+            }`}
+          >
+            Docs
+          </Link>
           <Button variant="ghost" size="sm" onClick={logout}>
             Logout
           </Button>
