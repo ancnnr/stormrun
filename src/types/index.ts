@@ -21,7 +21,7 @@ export type UserProgramEnrollment = Tables['user_program_enrollments']['Row']
 export type UserProgramSession = Tables['user_program_sessions']['Row']
 export type UserSettings = Tables['user_settings']['Row']
 export type UserStats = Tables['user_stats']['Row']
-export type UserTerritory = Tables['user_territories']['Row']
+export type UserTerritoryCell = Tables['user_territory_cells']['Row']
 
 export type MissionInsert = Tables['missions']['Insert']
 export type MissionUpdate = Tables['missions']['Update']

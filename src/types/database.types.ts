@@ -324,7 +324,7 @@ export type Database = {
           shelter_longitude: number | null
           shelter_name: string | null
           stamina: number
-          territory: number
+          territory_cell_count: number
           updated_at: string
           username: string
           vitals_age: number | null
@@ -352,7 +352,7 @@ export type Database = {
           shelter_longitude?: number | null
           shelter_name?: string | null
           stamina?: number
-          territory?: number
+          territory_cell_count?: number
           updated_at?: string
           username: string
           vitals_age?: number | null
@@ -380,7 +380,7 @@ export type Database = {
           shelter_longitude?: number | null
           shelter_name?: string | null
           stamina?: number
-          territory?: number
+          territory_cell_count?: number
           updated_at?: string
           username?: string
           vitals_age?: number | null
@@ -814,7 +814,6 @@ export type Database = {
           longest_streak: number
           mission_chain: number
           missions_complete: number
-          safe_territory: number
           top_distance: number
           total_distance: number
           total_runs: number
@@ -831,7 +830,6 @@ export type Database = {
           longest_streak?: number
           mission_chain?: number
           missions_complete?: number
-          safe_territory?: number
           top_distance?: number
           total_distance?: number
           total_runs?: number
@@ -848,7 +846,6 @@ export type Database = {
           longest_streak?: number
           mission_chain?: number
           missions_complete?: number
-          safe_territory?: number
           top_distance?: number
           total_distance?: number
           total_runs?: number
@@ -859,32 +856,23 @@ export type Database = {
         }
         Relationships: []
       }
-      user_territories: {
+      user_territory_cells: {
         Row: {
-          centroid_lat: number
-          centroid_lng: number
-          created_at: string | null
+          cell_index: string
+          claimed_at: string | null
           id: string
-          mission_id: string | null
-          radius_meters: number
           user_id: string
         }
         Insert: {
-          centroid_lat: number
-          centroid_lng: number
-          created_at?: string | null
+          cell_index: string
+          claimed_at?: string | null
           id?: string
-          mission_id?: string | null
-          radius_meters: number
           user_id: string
         }
         Update: {
-          centroid_lat?: number
-          centroid_lng?: number
-          created_at?: string | null
+          cell_index?: string
+          claimed_at?: string | null
           id?: string
-          mission_id?: string | null
-          radius_meters?: number
           user_id?: string
         }
         Relationships: []

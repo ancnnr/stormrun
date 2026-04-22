@@ -239,6 +239,227 @@ function DocSection({ id, kicker, title, children }: {
   );
 }
 
+// ─── Hex territory SVG components ────────────────────────────────────────────
+
+function HexTerritoryMap() {
+  // Pointy-top hexagons, r=20, w=34.64, dy=30
+  // 4x4 grid starting at (55,40), 280x220 viewbox
+  // Owned: r0c0, r0c1, r0c2, r1c0, r1c1, r1c2, r2c1, r2c2 (central cluster)
+  // Frontier: r0c3, r1c3, r2c0, r2c3, r3c1, r3c2
+  return (
+    <div style={{
+      display: 'inline-block',
+      border: '1px solid rgba(0,255,136,0.2)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      background: '#161B2E',
+    }}>
+      <svg width="280" height="220" viewBox="0 0 280 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="280" height="220" fill="#161B2E"/>
+        {/* Frontier hexes (dim green) */}
+        <polygon points="176.2,30.0 176.2,50.0 158.9,60.0 141.6,50.0 141.6,30.0 158.9,20.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        <polygon points="193.5,60.0 193.5,80.0 176.2,90.0 158.9,80.0 158.9,60.0 176.2,50.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        <polygon points="72.3,90.0 72.3,110.0 55.0,120.0 37.7,110.0 37.7,90.0 55.0,80.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        <polygon points="176.2,90.0 176.2,110.0 158.9,120.0 141.6,110.0 141.6,90.0 158.9,80.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        <polygon points="124.3,120.0 124.3,140.0 107.0,150.0 89.7,140.0 89.7,120.0 107.0,110.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        <polygon points="158.9,120.0 158.9,140.0 141.6,150.0 124.3,140.0 124.3,120.0 141.6,110.0"
+          fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" strokeWidth="1"/>
+        {/* Owned hexes (green) */}
+        <polygon points="72.3,30.0 72.3,50.0 55.0,60.0 37.7,50.0 37.7,30.0 55.0,20.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="106.9,30.0 106.9,50.0 89.6,60.0 72.3,50.0 72.3,30.0 89.6,20.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="141.6,30.0 141.6,50.0 124.3,60.0 107.0,50.0 107.0,30.0 124.3,20.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="89.6,60.0 89.6,80.0 72.3,90.0 55.0,80.0 55.0,60.0 72.3,50.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="124.3,60.0 124.3,80.0 107.0,90.0 89.7,80.0 89.7,60.0 107.0,50.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="158.9,60.0 158.9,80.0 141.6,90.0 124.3,80.0 124.3,60.0 141.6,50.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="106.9,90.0 106.9,110.0 89.6,120.0 72.3,110.0 72.3,90.0 89.6,80.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="141.6,90.0 141.6,110.0 124.3,120.0 107.0,110.0 107.0,90.0 124.3,80.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        {/* User position (cyan pulse dot) */}
+        <circle cx="107" cy="70" r="10" fill="rgba(0,217,255,0.15)"/>
+        <circle cx="107" cy="70" r="5" fill="#00D9FF"/>
+        <circle cx="107" cy="70" r="3" fill="#fff"/>
+        {/* Shelter pin (green house) */}
+        <g transform="translate(55,87)">
+          <circle r="10" fill="rgba(0,255,136,0.3)" stroke="#00FF88" strokeWidth="1.5"/>
+          <text x="0" y="4" textAnchor="middle" fill="#00FF88" fontSize="10" fontWeight="bold">⌂</text>
+        </g>
+        {/* Labels */}
+        <text x="10" y="210" fill="rgba(0,255,136,0.6)" fontSize="9" fontFamily="monospace">OWNED TERRITORY</text>
+        <text x="170" y="210" fill="rgba(0,255,136,0.3)" fontSize="9" fontFamily="monospace">FRONTIER</text>
+      </svg>
+    </div>
+  );
+}
+
+function FriendTerritoryMap() {
+  // User cluster (green, left side), Friend cluster (purple, right side)
+  // Both use r=20 hexes, 280x220 viewbox
+  return (
+    <div style={{
+      display: 'inline-block',
+      border: '1px solid rgba(139,92,246,0.25)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      background: '#161B2E',
+    }}>
+      <svg width="280" height="220" viewBox="0 0 280 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="280" height="220" fill="#161B2E"/>
+        {/* User hexes (green) */}
+        <polygon points="87.3,50.0 87.3,70.0 70.0,80.0 52.7,70.0 52.7,50.0 70.0,40.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="87.3,80.0 87.3,100.0 70.0,110.0 52.7,100.0 52.7,80.0 70.0,70.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="122.3,80.0 122.3,100.0 105.0,110.0 87.7,100.0 87.7,80.0 105.0,70.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="104.3,110.0 104.3,130.0 87.0,140.0 69.7,130.0 69.7,110.0 87.0,100.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="139.3,110.0 139.3,130.0 122.0,140.0 104.7,130.0 104.7,110.0 122.0,100.0"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"/>
+        {/* Friend hexes (purple) */}
+        <polygon points="177.3,70.0 177.3,90.0 160.0,100.0 142.7,90.0 142.7,70.0 160.0,60.0"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" strokeWidth="1.5"/>
+        <polygon points="212.3,70.0 212.3,90.0 195.0,100.0 177.7,90.0 177.7,70.0 195.0,60.0"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" strokeWidth="1.5"/>
+        <polygon points="212.3,40.0 212.3,60.0 195.0,70.0 177.7,60.0 177.7,40.0 195.0,30.0"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" strokeWidth="1.5"/>
+        <polygon points="194.3,100.0 194.3,120.0 177.0,130.0 159.7,120.0 159.7,100.0 177.0,90.0"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" strokeWidth="1.5"/>
+        <polygon points="177.3,100.0 177.3,120.0 160.0,130.0 142.7,120.0 142.7,100.0 160.0,90.0"
+          fill="rgba(139,92,246,0.15)" stroke="rgba(139,92,246,0.4)" strokeWidth="1.5"/>
+        {/* Friend initials pin (purple circle) */}
+        <circle cx="195" cy="80" r="14" fill="rgba(139,92,246,0.5)" stroke="rgba(139,92,246,0.8)" strokeWidth="1.5"/>
+        <text x="195" y="85" textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="monospace">SR</text>
+        {/* User position (cyan dot) */}
+        <circle cx="88" cy="90" r="9" fill="rgba(0,217,255,0.15)"/>
+        <circle cx="88" cy="90" r="5" fill="#00D9FF"/>
+        <circle cx="88" cy="90" r="3" fill="#fff"/>
+        {/* User shelter pin */}
+        <g transform="translate(70,125)">
+          <circle r="10" fill="rgba(0,255,136,0.3)" stroke="#00FF88" strokeWidth="1.5"/>
+          <text x="0" y="4" textAnchor="middle" fill="#00FF88" fontSize="10" fontWeight="bold">⌂</text>
+        </g>
+        {/* Labels */}
+        <text x="30" y="185" fill="rgba(0,255,136,0.6)" fontSize="9" fontFamily="monospace">YOUR TERRITORY</text>
+        <text x="148" y="185" fill="rgba(139,92,246,0.7)" fontSize="9" fontFamily="monospace">FRIEND TERRITORY</text>
+      </svg>
+    </div>
+  );
+}
+
+function TerritoryRewardCard() {
+  // Phone-screen card, 180x260, showing post-run territory reward UI
+  // 4 hexes in 2x2 arrangement, r=20, centered
+  return (
+    <div style={{
+      display: 'inline-block',
+      border: '1px solid rgba(0,255,136,0.2)',
+      borderRadius: 16,
+      overflow: 'hidden',
+      background: '#161B2E',
+      boxShadow: '0 0 0 1px #1e2540, 0 8px 32px rgba(0,0,0,0.4)',
+    }}>
+      <svg width="180" height="260" viewBox="0 0 180 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="180" height="260" rx="16" fill="#161B2E"/>
+        {/* Card inner bg */}
+        <rect x="14" y="14" width="152" height="232" rx="10" fill="#1A2040" stroke="rgba(0,255,136,0.15)" strokeWidth="1"/>
+        {/* Title */}
+        <text x="90" y="48" textAnchor="middle" fill="rgba(0,255,136,0.8)" fontSize="10" fontWeight="700"
+          fontFamily="monospace" letterSpacing="3">TERRITORY CLAIMED</text>
+        {/* Divider */}
+        <line x1="30" y1="56" x2="150" y2="56" stroke="rgba(0,255,136,0.2)" strokeWidth="1"/>
+        {/* 4 hexes in 2x2 cluster, r=20, centered at ~(90, 130) */}
+        {/* row0: (72.7, 115) and (107.3, 115) */}
+        {/* row1: (90, 145) and (124.6, 145) — shifted to center: use (72.7,115),(107.3,115),(90,145),(72.7+34.6,145) */}
+        {/* Centering: cluster spans ~from x=52 to x=145, y=95 to y=165. Center at ~90,130. Shift: */}
+        {/* Use cx offsets: left col = 73, right col = 107; rows y = 110 and 140 */}
+        <polygon points="90.0,100.0 90.0,120.0 72.7,130.0 55.4,120.0 55.4,100.0 72.7,90.0"
+          fill="rgba(0,255,136,0.35)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="124.6,100.0 124.6,120.0 107.3,130.0 90.0,120.0 90.0,100.0 107.3,90.0"
+          fill="rgba(0,255,136,0.35)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="107.3,130.0 107.3,150.0 90.0,160.0 72.7,150.0 72.7,130.0 90.0,120.0"
+          fill="rgba(0,255,136,0.35)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="142.0,130.0 142.0,150.0 124.7,160.0 107.3,150.0 107.3,130.0 124.7,120.0"
+          fill="rgba(0,255,136,0.35)" stroke="#00FF88" strokeWidth="1.5"/>
+        {/* Hex count */}
+        <text x="90" y="193" textAnchor="middle" fill="#00FF88" fontSize="28" fontWeight="700" fontFamily="monospace">+8</text>
+        <text x="90" y="208" textAnchor="middle" fill="#00FF88" fontSize="11" fontFamily="monospace">hexes</text>
+        {/* km² secured */}
+        <text x="90" y="232" textAnchor="middle" fill="#8B94A8" fontSize="10" fontFamily="monospace">0.84 km² secured</text>
+      </svg>
+    </div>
+  );
+}
+
+function RoutePreviewWithHexes() {
+  // 280x200, route from bottom-left to top-right, hex cells overlaid
+  // Route hexes r=16, owned along route, frontier surrounding
+  return (
+    <div style={{
+      display: 'inline-block',
+      border: '1px solid rgba(0,255,136,0.2)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      background: '#161B2E',
+    }}>
+      <svg width="280" height="200" viewBox="0 0 280 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="280" height="200" fill="#161B2E"/>
+        {/* Subtle grid lines */}
+        <line x1="0" y1="100" x2="280" y2="100" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
+        <line x1="140" y1="0" x2="140" y2="200" stroke="rgba(255,255,255,0.03)" strokeWidth="1"/>
+        {/* Frontier hexes (dim green) */}
+        <polygon points="85.9,107.0 85.9,123.0 72.0,131.0 58.1,123.0 58.1,107.0 72.0,99.0"
+          fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)" strokeWidth="1"/>
+        <polygon points="58.9,127.0 58.9,143.0 45.0,151.0 31.1,143.0 31.1,127.0 45.0,119.0"
+          fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)" strokeWidth="1"/>
+        <polygon points="143.9,77.0 143.9,93.0 130.0,101.0 116.1,93.0 116.1,77.0 130.0,69.0"
+          fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)" strokeWidth="1"/>
+        <polygon points="171.9,57.0 171.9,73.0 158.0,81.0 144.1,73.0 144.1,57.0 158.0,49.0"
+          fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)" strokeWidth="1"/>
+        <polygon points="228.9,27.0 228.9,43.0 215.0,51.0 201.1,43.0 201.1,27.0 215.0,19.0"
+          fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)" strokeWidth="1"/>
+        {/* Owned hexes along route */}
+        <polygon points="73.9,142.0 73.9,158.0 60.0,166.0 46.1,158.0 46.1,142.0 60.0,134.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="101.9,122.0 101.9,138.0 88.0,146.0 74.1,138.0 74.1,122.0 88.0,114.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="129.9,112.0 129.9,128.0 116.0,136.0 102.1,128.0 102.1,112.0 116.0,104.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="157.9,92.0 157.9,108.0 144.0,116.0 130.1,108.0 130.1,92.0 144.0,84.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="185.9,72.0 185.9,88.0 172.0,96.0 158.1,88.0 158.1,72.0 172.0,64.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="213.9,57.0 213.9,73.0 200.0,81.0 186.1,73.0 186.1,57.0 200.0,49.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        <polygon points="241.9,42.0 241.9,58.0 228.0,66.0 214.1,58.0 214.1,42.0 228.0,34.0"
+          fill="rgba(0,255,136,0.22)" stroke="#00FF88" strokeWidth="1.5"/>
+        {/* Route line (cyan, wavy) */}
+        <path d="M40,170 C55,155 75,145 88,130 C102,114 115,108 130,98 C145,87 158,78 172,68 C186,57 200,52 228,40"
+          stroke="#00D9FF" strokeWidth="2.5" strokeLinecap="round" opacity="0.85"/>
+        {/* Start dot */}
+        <circle cx="40" cy="170" r="7" fill="rgba(0,217,255,0.2)"/>
+        <circle cx="40" cy="170" r="4" fill="#00D9FF"/>
+        {/* End marker */}
+        <circle cx="228" cy="40" r="5" fill="none" stroke="#00D9FF" strokeWidth="2"/>
+        {/* Labels */}
+        <text x="10" y="192" fill="rgba(0,255,136,0.5)" fontSize="8" fontFamily="monospace">EXISTING TERRITORY</text>
+        <text x="175" y="192" fill="rgba(0,255,136,0.3)" fontSize="8" fontFamily="monospace">FRONTIER</text>
+      </svg>
+    </div>
+  );
+}
+
 // ─── Route type diagrams ──────────────────────────────────────────────────────
 
 function RouteTypeDiagrams() {
@@ -397,19 +618,21 @@ function MapTab() {
   return (
     <DocSection id="map" kicker="05 · TAB" title="Map">
       <p className="text-muted-foreground mb-4">
-        A dark-themed map centered on the Shelter pin. Shows mission waypoints, enemy territory overlays, and completed run trails.
+        A dark-themed map centered on the Shelter pin. Territory is rendered using <strong>Uber H3 hexagonal cells</strong> at resolution 9 — each hex is approximately 174 m across (~0.105 km²). Claimed hexes appear as green polygons; adjacent unclaimed cells glow dimly as the frontier edge. Friends with visible territory appear as purple hex clusters.
       </p>
 
-      <PhoneGallery items={[
-        { src: '/docs/app/map.png', caption: 'Map · Shelter territory' },
-      ]} />
+      <div className="my-6">
+        <HexTerritoryMap />
+      </div>
 
       <KvTable rows={[
-        ['Shelter pin', 'Green house icon at the runner\'s set home location. Tapping shows the Shelter radius.'],
-        ['Mission markers', 'Colored icons by mission type; pulsing ring on the active mission.'],
-        ['Territory', 'Faction-controlled zones shown as colored overlays with varying opacity based on control strength.'],
-        ['Run trails', 'Previous runs drawn as faint lines on the map, fading over time.'],
-        ['Zoom', 'Standard pinch-to-zoom; double-tap centers on Shelter.'],
+        ['Shelter pin', 'Green house icon at the runner\'s home location. All runs originate and return here.'],
+        ['Own territory', 'Green hex polygons covering H3 cells claimed through past runs. Each hex is ~174 m across. Total area shown as cell_count × 0.105 km².'],
+        ['Frontier', 'Dim green hex outlines showing unclaimed H3 cells adjacent to your territory — the expansion edge. Static (no animation).'],
+        ['Friend territory', 'Purple hex polygons for friends with public or friends-visible territory settings. Capped at 20 friends for performance. Their shelter is shown with a purple initials pin.'],
+        ['Active location', 'Cyan pulse dot tracking your live GPS position. Updates during a run.'],
+        ['Recenter button', 'Bottom-right button snaps the map back to your current location.'],
+        ['Active friends chip', 'Shows the count of friends currently running or online when the count is greater than 0.'],
       ]} />
     </DocSection>
   );
@@ -446,58 +669,39 @@ function Community() {
         The Community tab is the social hub — friends, incoming requests, and a feed of recent friend activity. Three segment tabs open left-to-right: Activity → Friends → Requests. A numeric badge on the tab bar icon appears when there are unread friend requests.
       </p>
 
-      <Callout>
-        Screenshots below are placeholders. Replace each <code>.svg</code> file in{' '}
-        <code>public/docs/app/</code> with a same-named <code>.png</code> and update
-        the <code>src</code> props in this section.
-      </Callout>
-
       <h3 className="font-semibold text-base mt-6 mb-1">Activity Feed</h3>
       <p className="text-sm text-muted-foreground mb-4">
         Default tab. Shows a reverse-chronological feed of events from accepted friends: run completions (mission name, distance, pace) and achievement unlocks. Only visible to accepted friends — privacy-gated by each friend's settings.
       </p>
-      <PhoneGallery items={[
-        { src: '/docs/app/community-activity.svg', caption: 'Activity · friend events' },
-      ]} />
 
       <h3 className="font-semibold text-base mt-6 mb-1">Friends List</h3>
       <p className="text-sm text-muted-foreground mb-4">
         All accepted friends with presence status badges (online / running / offline). Tapping a friend opens their profile. The <strong>+ Add Friend</strong> FAB (bottom-right) opens the search modal.
       </p>
-      <PhoneGallery items={[
-        { src: '/docs/app/community-friends.svg', caption: 'Friends · list with status' },
-        { src: '/docs/app/community-add-friend.svg', caption: 'Add Friend · search modal' },
-      ]} />
 
       <h3 className="font-semibold text-base mt-6 mb-1">Friend Requests</h3>
       <p className="text-sm text-muted-foreground mb-4">
         Incoming pending requests with Accept / Decline actions. The tab label shows a live count badge. Accepting moves the user to the Friends list immediately.
       </p>
-      <PhoneGallery items={[
-        { src: '/docs/app/community-requests.svg', caption: 'Requests · pending list' },
-      ]} />
 
       <h3 className="font-semibold text-base mt-6 mb-1">Map Integration</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Friends with public or friends-visible territory appear on the Map tab as purple initials pins with an approximate territory circle (radius derived from km²). Capped at 20 friends for performance.
+        Friends with public or friends-visible territory appear on the Map tab as purple hex polygons with an initials pin at their shelter location. The app fetches friend territory boundaries on map open via <code>GET /api/friends/territories</code>. Capped at 20 friends for performance.
       </p>
-      <PhoneGallery items={[
-        { src: '/docs/app/community-map-territory.svg', caption: 'Map · friend territory overlay' },
-      ]} />
+      <div className="my-6">
+        <FriendTerritoryMap />
+      </div>
 
       <h3 className="font-semibold text-base mt-6 mb-1">Privacy Settings</h3>
       <p className="text-sm text-muted-foreground mb-4">
         Each runner controls visibility of five profile fields independently: public / friends / private. Settings live in the Profile tab's settings sheet under the "Privacy" section.
       </p>
-      <PhoneGallery items={[
-        { src: '/docs/app/community-privacy-settings.svg', caption: 'Settings · privacy controls' },
-      ]} />
 
       <KvTable rows={[
         ['Friend search', 'Search by username (partial match) or full email address. Results show friendship status — already-friends and pending requests are labelled and the Add button is disabled.'],
         ['Presence status', '"online" on app foreground, "offline" on background, "running" during an active mission. Updated via PATCH /api/user/status. Friends see it on screen open (DB-only, no realtime push).'],
         ['Privacy fields', 'Achievements · Run Times · Territory Map · Status · Profile. Each independently set to public / friends / private. Defaults: achievements and run times → friends; territory map and profile → public; status → friends.'],
-        ['Territory on map', 'Approximate circle: radius = √(territory_km² / π). Centered on friend\'s shelter. Shown only when privacy_territory_map permits.'],
+        ['Territory on map', 'H3 hex cells (resolution 9) owned by the friend. Shown as purple hex polygons only when privacy_territory_map permits. Shelter shown as a purple initials pin.'],
         ['Route leaderboard', 'After completing a mission run, a leaderboard entry is submitted automatically (best-effort, non-blocking). Viewable per-mission — your best pace vs. friends\' best pace vs. top public.'],
         ['Activity feed', 'Populated by run completions and achievement unlocks. Only shown to accepted friends when privacy settings allow.'],
       ]} />
@@ -574,6 +778,14 @@ function RunExperience() {
         { src: '/docs/app/route-3.png', caption: 'Route · accept' },
       ]} />
 
+      <h3 className="font-semibold text-base mt-6 mb-2">Territory context on route preview</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        The route preview map shows your existing green hex territory and dim frontier cells so you can see which direction expands your claimed area before committing to a route.
+      </p>
+      <div className="my-6">
+        <RoutePreviewWithHexes />
+      </div>
+
       <h3 className="font-semibold text-base mt-6 mb-2">During the run</h3>
       <PhoneGallery items={[
         { src: '/docs/app/start-run.png', caption: 'Live · run active' },
@@ -593,6 +805,14 @@ function RunExperience() {
       <Callout>
         <strong>Chase mechanic:</strong> If the runner slows below target pace during a chase sequence, Audrey warns them. If pace doesn't recover within the window, the chase resolves as a failure (story continues, but with a different branch).
       </Callout>
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Territory reward</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        When a run claims new hex cells, a "TERRITORY CLAIMED" card appears in the debrief with the hex count and km² secured. No new cells = no card shown.
+      </p>
+      <div className="my-6 flex justify-center">
+        <TerritoryRewardCard />
+      </div>
     </DocSection>
   );
 }
