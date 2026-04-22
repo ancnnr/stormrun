@@ -551,7 +551,7 @@ export default function UsersPage() {
                     <StatItem label="XP" value={selectedUser.xp.toLocaleString()} />
                     <StatItem label="Health" value={`${selectedUser.health} / ${selectedUser.maxHealth}`} />
                     <StatItem label="Stamina" value={selectedUser.stamina} />
-                    <StatItem label="Territory Cells" value={selectedUser.territory_cell_count.toLocaleString()} />
+                    <StatItem label="Territory Cells" value={(selectedUser.territory_cell_count ?? 0).toLocaleString()} />
                     <StatItem label="Faction Influence" value={selectedUser.factionInfluence} />
                     {selectedUser.shelterName && (
                       <StatItem label="Shelter" value={selectedUser.shelterName} className="col-span-2" />
