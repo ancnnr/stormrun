@@ -239,6 +239,40 @@ function DocSection({ id, kicker, title, children }: {
   );
 }
 
+// ─── Route type diagrams ──────────────────────────────────────────────────────
+
+function RouteTypeDiagrams() {
+  return (
+    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 16 }}>
+      {/* Loop */}
+      <div style={{ textAlign: 'center' as const }}>
+        <svg width="180" height="160" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="180" rx="8" fill="#161B2E"/>
+          <ellipse cx="100" cy="88" rx="65" ry="45" stroke="#00D9FF" strokeWidth="2.5"/>
+          <polygon points="148,55 160,49 154,62" fill="#00D9FF"/>
+          <circle cx="100" cy="133" r="6" fill="#00D9FF"/>
+          <circle cx="100" cy="133" r="3" fill="#0A0E1A"/>
+          <text x="100" y="168" textAnchor="middle" fill="#8B94A8" fontSize="11" fontWeight="700" fontFamily="monospace">LOOP</text>
+        </svg>
+      </div>
+      {/* Out & Back */}
+      <div style={{ textAlign: 'center' as const }}>
+        <svg width="180" height="160" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="180" rx="8" fill="#161B2E"/>
+          <path d="M28 82 Q80 58 165 78" stroke="#00D9FF" strokeWidth="2.5" strokeLinecap="round"/>
+          <polygon points="158,70 170,78 158,86" fill="#00D9FF"/>
+          <path d="M165 92 Q80 115 28 98" stroke="#00D9FF" strokeWidth="2" strokeLinecap="round" opacity="0.4" strokeDasharray="6 4"/>
+          <polygon points="36,103 25,95 36,88" fill="#00D9FF" opacity="0.45"/>
+          <circle cx="167" cy="85" r="5" fill="none" stroke="#00D9FF" strokeWidth="2"/>
+          <circle cx="28" cy="90" r="6" fill="#00D9FF"/>
+          <circle cx="28" cy="90" r="3" fill="#0A0E1A"/>
+          <text x="100" y="168" textAnchor="middle" fill="#8B94A8" fontSize="11" fontWeight="700" fontFamily="monospace">OUT &amp; BACK</text>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 // ─── Content sections ─────────────────────────────────────────────────────────
 
 function Overview() {
@@ -312,7 +346,7 @@ function Onboarding() {
       <KvTable rows={[
         ['1 · Welcome', 'Audrey\'s first words: "Systems online. This is Audrey." Headphone icon. Single Continue CTA. Nothing collected.'],
         ['2 · Audrey intro', '"Grey Army protocol removed. This is Audrey, your survival implant." Sets narrative tone.'],
-        ['3 · Vitals', 'Callsign (username), profile avatar, age/gender/weight/height, experience level (Beginner / Intermediate / Advanced).'],
+        ['3 · Vitals', 'Callsign (username), profile avatar, age/gender/weight/height, experience level (Beginner / Intermediate / Advanced), Route Style (Loop / Out & Back).'],
         ['4 · Shelter', '"Storms intensifying. We need a shelter." Runner confirms current GPS location or picks a different one on the map. All runs start and end here.'],
         ['5 · Route preview', 'First mission ("Storm Wall Breach") is pre-assigned. Route shown on map with distance/time estimate. Runner accepts to begin.'],
       ]} />
@@ -320,6 +354,16 @@ function Onboarding() {
       <Callout variant="warn">
         Location permission is requested at the Shelter step — not on app open. This means the runner understands <em>why</em> before granting it.
       </Callout>
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Route style options</h3>
+      <p className="text-sm text-muted-foreground mb-2">
+        Set during Vitals. Controls how routes are generated when starting any mission. Editable later in Edit Profile.
+      </p>
+      <KvTable rows={[
+        ['Loop', 'Default. ORS generates a single large loop that returns to the start point.'],
+        ['Out & Back', 'Route goes out half the target distance, then returns the same way.'],
+      ]} />
+      <RouteTypeDiagrams />
     </DocSection>
   );
 }
@@ -479,6 +523,16 @@ function Profile() {
         ['Avatar', 'Chosen during onboarding; changeable from Profile. Pre-set art or upload.'],
         ['Settings entry', 'Gear icon in the top-right opens the settings sheet.'],
       ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Route Style preference</h3>
+      <p className="text-sm text-muted-foreground mb-2">
+        Set during onboarding Vitals and editable from Edit Profile. Controls how routes are generated for every mission.
+      </p>
+      <KvTable rows={[
+        ['Loop', 'Default. One large loop that returns to the start point.'],
+        ['Out & Back', 'Run half the distance outbound, then return the same way.'],
+      ]} />
+      <RouteTypeDiagrams />
     </DocSection>
   );
 }
