@@ -269,19 +269,6 @@ function RouteTypeDiagrams() {
           <text x="100" y="168" textAnchor="middle" fill="#8B94A8" fontSize="11" fontWeight="700" fontFamily="monospace">OUT &amp; BACK</text>
         </svg>
       </div>
-      {/* Laps */}
-      <div style={{ textAlign: 'center' as const }}>
-        <svg width="180" height="160" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect width="200" height="180" rx="8" fill="#161B2E"/>
-          <ellipse cx="100" cy="88" rx="65" ry="42" stroke="#00D9FF" strokeWidth="2" opacity="0.3"/>
-          <ellipse cx="100" cy="88" rx="48" ry="31" stroke="#00D9FF" strokeWidth="2" opacity="0.6"/>
-          <ellipse cx="100" cy="88" rx="32" ry="20" stroke="#00D9FF" strokeWidth="2.5"/>
-          <polygon points="120,70 132,65 127,77" fill="#00D9FF"/>
-          <circle cx="100" cy="108" r="6" fill="#00D9FF"/>
-          <circle cx="100" cy="108" r="3" fill="#0A0E1A"/>
-          <text x="100" y="168" textAnchor="middle" fill="#8B94A8" fontSize="11" fontWeight="700" fontFamily="monospace">LAPS (×3)</text>
-        </svg>
-      </div>
     </div>
   );
 }
@@ -359,7 +346,7 @@ function Onboarding() {
       <KvTable rows={[
         ['1 · Welcome', 'Audrey\'s first words: "Systems online. This is Audrey." Headphone icon. Single Continue CTA. Nothing collected.'],
         ['2 · Audrey intro', '"Grey Army protocol removed. This is Audrey, your survival implant." Sets narrative tone.'],
-        ['3 · Vitals', 'Callsign (username), profile avatar, age/gender/weight/height, experience level (Beginner / Intermediate / Advanced), Route Style (Loop / Out & Back / Laps).'],
+        ['3 · Vitals', 'Callsign (username), profile avatar, age/gender/weight/height, experience level (Beginner / Intermediate / Advanced), Route Style (Loop / Out & Back).'],
         ['4 · Shelter', '"Storms intensifying. We need a shelter." Runner confirms current GPS location or picks a different one on the map. All runs start and end here.'],
         ['5 · Route preview', 'First mission ("Storm Wall Breach") is pre-assigned. Route shown on map with distance/time estimate. Runner accepts to begin.'],
       ]} />
@@ -375,7 +362,6 @@ function Onboarding() {
       <KvTable rows={[
         ['Loop', 'Default. ORS generates a single large loop that returns to the start point.'],
         ['Out & Back', 'Route goes out half the target distance, then returns the same way.'],
-        ['Laps', 'Generates a small loop at ⅓ of the target distance, repeated 3×.'],
       ]} />
       <RouteTypeDiagrams />
     </DocSection>
@@ -545,7 +531,6 @@ function Profile() {
       <KvTable rows={[
         ['Loop', 'Default. One large loop that returns to the start point.'],
         ['Out & Back', 'Run half the distance outbound, then return the same way.'],
-        ['Laps', 'Three laps of a smaller loop near the start point.'],
       ]} />
       <RouteTypeDiagrams />
     </DocSection>
