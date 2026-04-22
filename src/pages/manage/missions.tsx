@@ -37,7 +37,6 @@ interface LootConfig {
 interface MissionRewards {
   xp?: number;
   gold?: number;
-  territory?: number;
   /** New structured format; may still be a legacy array on un-migrated rows. */
   loot?: LootConfig | LootEntry[];
 }
@@ -87,7 +86,6 @@ export default function MissionsPage() {
   // Rewards state (managed outside react-hook-form due to nested complexity)
   const [rewardsXp, setRewardsXp] = useState('0');
   const [rewardsGold, setRewardsGold] = useState('0');
-  const [rewardsTerritory, setRewardsTerritory] = useState('0');
 
   // Loot config state
   const [lootMode, setLootMode] = useState<LootMode>('specific');
@@ -131,7 +129,6 @@ export default function MissionsPage() {
   function parseRewards(rewards: MissionRewards | null) {
     setRewardsXp(String(rewards?.xp ?? 0));
     setRewardsGold(String(rewards?.gold ?? 0));
-    setRewardsTerritory(String(rewards?.territory ?? 0));
 
     const loot = rewards?.loot;
     if (!loot) {
@@ -236,7 +233,6 @@ export default function MissionsPage() {
         rewards: {
           xp: parseInt(rewardsXp, 10) || 0,
           gold: parseInt(rewardsGold, 10) || 0,
-          territory: parseFloat(rewardsTerritory) || 0,
           loot,
         },
       };
@@ -453,10 +449,6 @@ export default function MissionsPage() {
                     <div className="space-y-1">
                       <label className="text-sm font-medium">Gold</label>
                       <Input type="number" min="0" value={rewardsGold} onChange={(e) => setRewardsGold(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Territory (km²)</label>
-                      <Input type="number" min="0" step="0.1" value={rewardsTerritory} onChange={(e) => setRewardsTerritory(e.target.value)} />
                     </div>
                   </div>
 

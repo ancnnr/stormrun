@@ -49,7 +49,7 @@ export interface SimulateResult {
   timeSeconds: number;
   paceMinPerKm: number;
   routeSaved: boolean;
-  territoryClaimed: boolean;
+  newCellsClaimed: number;
   xpAwarded: number;
   goldAwarded: number;
   itemsAwarded: { id: string; name: string; quantity: number }[];

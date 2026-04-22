@@ -37,7 +37,7 @@ interface UserDetail {
   health: number;
   maxHealth: number;
   stamina: number;
-  territory: number;
+  territory_cell_count: number;
   factionInfluence: number;
   shelterName: string | null;
   createdAt: string;
@@ -51,7 +51,6 @@ interface UserDetail {
     longestStreak: number;
     topDistance: number;
     lastRunDate: string | null;
-    safeTerritory: number;
   };
 }
 
@@ -552,7 +551,7 @@ export default function UsersPage() {
                     <StatItem label="XP" value={selectedUser.xp.toLocaleString()} />
                     <StatItem label="Health" value={`${selectedUser.health} / ${selectedUser.maxHealth}`} />
                     <StatItem label="Stamina" value={selectedUser.stamina} />
-                    <StatItem label="Territory" value={`${selectedUser.territory.toFixed(1)} km²`} />
+                    <StatItem label="Territory Cells" value={selectedUser.territory_cell_count.toLocaleString()} />
                     <StatItem label="Faction Influence" value={selectedUser.factionInfluence} />
                     {selectedUser.shelterName && (
                       <StatItem label="Shelter" value={selectedUser.shelterName} className="col-span-2" />
@@ -570,7 +569,6 @@ export default function UsersPage() {
                     <StatItem label="Current Streak" value={`${selectedUser.stats.currentStreak} days`} />
                     <StatItem label="Longest Streak" value={`${selectedUser.stats.longestStreak} days`} />
                     <StatItem label="Top Distance" value={formatDistance(selectedUser.stats.topDistance)} />
-                    <StatItem label="Safe Territory" value={`${selectedUser.stats.safeTerritory.toFixed(1)} km²`} />
                     <StatItem label="Last Run" value={formatDate(selectedUser.stats.lastRunDate)} />
                   </div>
                 </TabsContent>

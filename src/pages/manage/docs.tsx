@@ -479,7 +479,7 @@ function Community() {
 
       <h3 className="font-semibold text-base mt-6 mb-1">Map Integration</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Friends with public or friends-visible territory appear on the Map tab as purple initials pins with an approximate territory circle (radius derived from km²). Capped at 20 friends for performance.
+        Friends with public or friends-visible territory appear on the Map tab as purple initials pins with their H3 hex cells highlighted. Capped at 20 friends for performance.
       </p>
       <PhoneGallery items={[
         { src: '/docs/app/community-map-territory.svg', caption: 'Map · friend territory overlay' },
@@ -497,7 +497,7 @@ function Community() {
         ['Friend search', 'Search by username (partial match) or full email address. Results show friendship status — already-friends and pending requests are labelled and the Add button is disabled.'],
         ['Presence status', '"online" on app foreground, "offline" on background, "running" during an active mission. Updated via PATCH /api/user/status. Friends see it on screen open (DB-only, no realtime push).'],
         ['Privacy fields', 'Achievements · Run Times · Territory Map · Status · Profile. Each independently set to public / friends / private. Defaults: achievements and run times → friends; territory map and profile → public; status → friends.'],
-        ['Territory on map', 'Approximate circle: radius = √(territory_km² / π). Centered on friend\'s shelter. Shown only when privacy_territory_map permits.'],
+        ['Territory on map', 'H3 hex cells (resolution 9) owned by the friend. Shown only when privacy_territory_map permits.'],
         ['Route leaderboard', 'After completing a mission run, a leaderboard entry is submitted automatically (best-effort, non-blocking). Viewable per-mission — your best pace vs. friends\' best pace vs. top public.'],
         ['Activity feed', 'Populated by run completions and achievement unlocks. Only shown to accepted friends when privacy settings allow.'],
       ]} />
