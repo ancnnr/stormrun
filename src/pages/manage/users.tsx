@@ -59,10 +59,8 @@ interface UserMission {
   missionTitle: string;
   difficulty: string | null;
   status: string;
-  distanceKm: number | null;
-  timeSeconds: number | null;
-  paceMinPerKm: number | null;
-  completedAt: string | null;
+  runCount: number;
+  firstCompletedAt: string | null;
 }
 
 interface InventoryItem {
@@ -591,14 +589,17 @@ export default function UsersPage() {
                               {m.status}
                             </Badge>
                           </div>
-                          <div className="mt-2 grid grid-cols-3 gap-2 text-muted-foreground">
-                            {m.distanceKm != null && <span>{formatDistance(m.distanceKm)}</span>}
-                            {m.timeSeconds != null && <span>{formatTime(m.timeSeconds)}</span>}
-                            {m.paceMinPerKm != null && <span>{formatPace(m.paceMinPerKm)}</span>}
+                          <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                            {m.runCount > 0 && (
+                              <span className="font-medium text-foreground">
+                                Completed {m.runCount}×
+                              </span>
+                            )}
+                            {m.firstCompletedAt && (
+                              <span>First: {formatDate(m.firstCompletedAt)}</span>
+                            )}
                           </div>
-                          {m.completedAt && (
-                            <p className="mt-1 text-xs text-muted-foreground">{formatDate(m.completedAt)}</p>
-                          )}
+                          {/* Run History detail comes in Admin Pass 2 (user_runs per-run stats) */}
                         </div>
                       ))}
                     </div>
