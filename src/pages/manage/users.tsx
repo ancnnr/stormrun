@@ -54,6 +54,18 @@ interface UserDetail {
   };
 }
 
+interface UserRun {
+  id: string;
+  completedAt: string;
+  distanceKm: number;
+  timeSeconds: number;
+  paceMinPerKm: number;
+  hazardLevel: string;
+  newCellsClaimed: number;
+  xpAwarded: number;
+  goldAwarded: number;
+}
+
 interface UserMission {
   missionId: string;
   missionTitle: string;
@@ -61,6 +73,7 @@ interface UserMission {
   status: string;
   runCount: number;
   firstCompletedAt: string | null;
+  runs: UserRun[];
 }
 
 interface InventoryItem {
@@ -179,6 +192,18 @@ export default function UsersPage() {
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  // Weekly Missions tab state
+  const [userWeeklySlots, setUserWeeklySlots] = useState<Array<{ id: string; iso_week: string; mission_type: string; status: string; completed_at: string | null }>>([]);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+
+  // Outposts tab state
+  const [userOutposts, setUserOutposts] = useState<Array<{ id: string; name: string; status: string; supply_run_count: number; established_at: string; last_resupply_at: string | null }>>([]);
+  const [outpostsLoading, setOutpostsLoading] = useState(false);
+
+  // Chronicle tab state
+  const [userChronicle, setUserChronicle] = useState<Array<{ missionId: string; title: string; storySeason: number | null; storyChapter: number | null; difficulty: string; minLevel: number | null; status: string; firstCompletedAt: string | null }>>([]);
+  const [chronicleLoading, setChronicleLoading] = useState(false);
+
   // Seed Data tab state
   const [seedMissions, setSeedMissions] = useState<AdminMission[]>([]);
   const [seedMissionsLoading, setSeedMissionsLoading] = useState(false);
@@ -258,6 +283,42 @@ export default function UsersPage() {
       toast({ title: 'Error loading inventory', description: e instanceof Error ? e.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setInventoryLoading(false);
+    }
+  }
+
+  async function loadWeeklyMissions(userId: string) {
+    setWeeklyLoading(true);
+    try {
+      const data = await apiFetch<typeof userWeeklySlots>(`/api/admin/users/${userId}/weekly-missions`);
+      setUserWeeklySlots(data ?? []);
+    } catch {
+      setUserWeeklySlots([]);
+    } finally {
+      setWeeklyLoading(false);
+    }
+  }
+
+  async function loadOutposts(userId: string) {
+    setOutpostsLoading(true);
+    try {
+      const data = await apiFetch<typeof userOutposts>(`/api/admin/users/${userId}/outposts`);
+      setUserOutposts(data ?? []);
+    } catch {
+      setUserOutposts([]);
+    } finally {
+      setOutpostsLoading(false);
+    }
+  }
+
+  async function loadChronicle(userId: string) {
+    setChronicleLoading(true);
+    try {
+      const data = await apiFetch<typeof userChronicle>(`/api/admin/users/${userId}/story`);
+      setUserChronicle(data ?? []);
+    } catch {
+      setUserChronicle([]);
+    } finally {
+      setChronicleLoading(false);
     }
   }
 
@@ -529,13 +590,20 @@ export default function UsersPage() {
               </SheetHeader>
 
               <Tabs defaultValue="profile" onValueChange={(v) => {
-                if (v === 'inventory' && selectedUser) loadInventory(selectedUser.id);
+                if (!selectedUser) return;
+                if (v === 'inventory') loadInventory(selectedUser.id);
                 if (v === 'seed') loadSeedMissions();
+                if (v === 'weekly') loadWeeklyMissions(selectedUser.id);
+                if (v === 'outposts') loadOutposts(selectedUser.id);
+                if (v === 'chronicle') loadChronicle(selectedUser.id);
               }}>
-                <TabsList className="mb-4">
+                <TabsList className="mb-4 flex-wrap h-auto gap-1">
                   <TabsTrigger value="profile">Profile</TabsTrigger>
                   <TabsTrigger value="stats">Run Stats</TabsTrigger>
                   <TabsTrigger value="missions">Missions ({userMissions.length})</TabsTrigger>
+                  <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                  <TabsTrigger value="outposts">Outposts</TabsTrigger>
+                  <TabsTrigger value="chronicle">Chronicle</TabsTrigger>
                   <TabsTrigger value="inventory">Inventory</TabsTrigger>
                   <TabsTrigger value="role">Role</TabsTrigger>
                   {selectedUser.role === 'test' && (
@@ -599,7 +667,32 @@ export default function UsersPage() {
                               <span>First: {formatDate(m.firstCompletedAt)}</span>
                             )}
                           </div>
-                          {/* Run History detail comes in Admin Pass 2 (user_runs per-run stats) */}
+                          {m.runs && m.runs.length > 0 && (
+                            <div className="mt-3 rounded-md border divide-y">
+                              {m.runs.map((run) => {
+                                const hazardColors: Record<string, string> = {
+                                  none: 'text-muted-foreground',
+                                  moderate: 'text-yellow-600',
+                                  high: 'text-orange-600',
+                                  danger: 'text-red-600',
+                                };
+                                return (
+                                  <div key={run.id} className="px-3 py-2 text-xs grid grid-cols-5 gap-2 items-center">
+                                    <span className="text-muted-foreground">{formatDate(run.completedAt)}</span>
+                                    <span>{formatDistance(run.distanceKm)}</span>
+                                    <span>{formatPace(run.paceMinPerKm)}</span>
+                                    <span className={hazardColors[run.hazardLevel] ?? 'text-muted-foreground capitalize'}>
+                                      {run.hazardLevel}
+                                    </span>
+                                    <span className="text-right text-muted-foreground">
+                                      +{run.xpAwarded} XP · +{run.goldAwarded}G
+                                      {run.newCellsClaimed > 0 && ` · +${run.newCellsClaimed} cells`}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -894,6 +987,152 @@ export default function UsersPage() {
                       </CardContent>
                     </Card>
                   </div>
+                </TabsContent>
+
+                {/* ── Weekly Missions tab ─────────────────────────────── */}
+                <TabsContent value="weekly">
+                  {weeklyLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+                  {!weeklyLoading && userWeeklySlots.length === 0 && (
+                    <p className="text-muted-foreground text-sm">No weekly mission slots found.</p>
+                  )}
+                  {!weeklyLoading && userWeeklySlots.length > 0 && (() => {
+                    const byWeek = userWeeklySlots.reduce<Record<string, typeof userWeeklySlots>>((acc, s) => {
+                      if (!acc[s.iso_week]) acc[s.iso_week] = [];
+                      acc[s.iso_week].push(s);
+                      return acc;
+                    }, {});
+                    const TYPE_LABELS: Record<string, string> = {
+                      territory_expansion: 'Territory Expansion',
+                      outpost_establishment: 'Outpost',
+                      scouting: 'Scouting',
+                      supply_run: 'Supply Run',
+                      story: 'Story',
+                    };
+                    const STATUS_COLORS_WK: Record<string, string> = {
+                      completed: 'bg-green-100 text-green-800',
+                      in_progress: 'bg-blue-100 text-blue-800',
+                      pending: 'bg-gray-100 text-gray-600',
+                      abandoned: 'bg-red-100 text-red-800',
+                    };
+                    return (
+                      <div className="space-y-4">
+                        {Object.keys(byWeek).sort((a, b) => b.localeCompare(a)).map((week) => (
+                          <div key={week}>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">{week}</p>
+                            <div className="rounded-md border divide-y">
+                              {byWeek[week].map((slot) => (
+                                <div key={slot.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                                  <span className="font-medium">{TYPE_LABELS[slot.mission_type] ?? slot.mission_type}</span>
+                                  <div className="flex items-center gap-3">
+                                    {slot.completed_at && (
+                                      <span className="text-xs text-muted-foreground">{formatDate(slot.completed_at)}</span>
+                                    )}
+                                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS_WK[slot.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                                      {slot.status.replace('_', ' ')}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </TabsContent>
+
+                {/* ── Outposts tab ─────────────────────────────────────── */}
+                <TabsContent value="outposts">
+                  {outpostsLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+                  {!outpostsLoading && userOutposts.length === 0 && (
+                    <p className="text-muted-foreground text-sm">No outposts established.</p>
+                  )}
+                  {!outpostsLoading && userOutposts.length > 0 && (
+                    <div className="space-y-2">
+                      {userOutposts.map((o) => {
+                        const statusColors: Record<string, string> = {
+                          active: 'bg-green-100 text-green-800',
+                          dormant: 'bg-amber-100 text-amber-800',
+                          decommissioned: 'bg-gray-100 text-gray-500',
+                        };
+                        const days = o.last_resupply_at
+                          ? Math.floor((Date.now() - new Date(o.last_resupply_at).getTime()) / 86400000)
+                          : null;
+                        return (
+                          <div key={o.id} className="rounded-md border p-3 text-sm">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <p className="font-medium">{o.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Established {formatDate(o.established_at)} · {o.supply_run_count} resuppl{o.supply_run_count === 1 ? 'y' : 'ies'}
+                                </p>
+                                {days !== null && (
+                                  <p className={`text-xs mt-0.5 ${days >= 5 ? 'text-amber-700 font-medium' : 'text-muted-foreground'}`}>
+                                    Last resupply: {days}d ago{days >= 5 ? ' ⚠' : ''}
+                                  </p>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[o.status] ?? 'bg-gray-100 text-gray-600'}`}>
+                                {o.status}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ── Chronicle tab ─────────────────────────────────────── */}
+                <TabsContent value="chronicle">
+                  {chronicleLoading && <p className="text-muted-foreground text-sm">Loading…</p>}
+                  {!chronicleLoading && userChronicle.length === 0 && (
+                    <p className="text-muted-foreground text-sm">No story chapters found.</p>
+                  )}
+                  {!chronicleLoading && userChronicle.length > 0 && (() => {
+                    const bySeasonRaw = userChronicle.reduce<Record<number, typeof userChronicle>>((acc, c) => {
+                      const s = c.storySeason ?? 0;
+                      if (!acc[s]) acc[s] = [];
+                      acc[s].push(c);
+                      return acc;
+                    }, {});
+                    const statusColors: Record<string, string> = {
+                      completed: 'bg-green-100 text-green-800',
+                      in_progress: 'bg-blue-100 text-blue-800',
+                      locked: 'bg-gray-100 text-gray-500',
+                    };
+                    const completed = userChronicle.filter((c) => c.status === 'completed').length;
+                    return (
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">{completed} / {userChronicle.length} chapters completed</p>
+                        {Object.keys(bySeasonRaw).sort((a, b) => Number(a) - Number(b)).map((sk) => (
+                          <div key={sk}>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                              {Number(sk) === 0 ? 'Unassigned' : `Season ${sk}`}
+                            </p>
+                            <div className="rounded-md border divide-y">
+                              {bySeasonRaw[Number(sk)].map((chapter) => (
+                                <div key={chapter.missionId} className="flex items-center justify-between px-3 py-2 text-sm">
+                                  <div>
+                                    <p className="font-medium">Ch. {chapter.storyChapter ?? '?'} — {chapter.title}</p>
+                                    {chapter.firstCompletedAt && (
+                                      <p className="text-xs text-muted-foreground">Completed {formatDate(chapter.firstCompletedAt)}</p>
+                                    )}
+                                    {chapter.minLevel && chapter.status === 'locked' && (
+                                      <p className="text-xs text-muted-foreground">Requires Lvl {chapter.minLevel}</p>
+                                    )}
+                                  </div>
+                                  <Badge className={statusColors[chapter.status] ?? 'bg-gray-100 text-gray-600'} variant="outline">
+                                    {chapter.status}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </TabsContent>
 
                 <TabsContent value="role">

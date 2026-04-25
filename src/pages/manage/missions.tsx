@@ -50,6 +50,16 @@ interface CatalogItem {
 const DIFFICULTY_LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'] as const;
 const MISSION_STATUSES = ['draft', 'active', 'archived'] as const;
 const LOCOMOTION_TYPES = ['run', 'walk', 'walk_run'] as const;
+const MISSION_TYPES = ['territory_expansion', 'outpost_establishment', 'scouting', 'supply_run', 'story'] as const;
+type MissionType = typeof MISSION_TYPES[number];
+
+const MISSION_TYPE_LABELS: Record<MissionType, string> = {
+  territory_expansion: 'Territory Expansion',
+  outpost_establishment: 'Outpost Establishment',
+  scouting: 'Scouting',
+  supply_run: 'Supply Run',
+  story: 'Story',
+};
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-yellow-100 text-yellow-800',
@@ -65,9 +75,18 @@ const missionSchema = z.object({
   estimated_time: z.coerce.number().int().min(0).default(0),
   estimated_distance: z.coerce.number().min(0).default(0),
   locomotion_type: z.enum(LOCOMOTION_TYPES).nullable().default(null),
+  mission_type: z.enum(MISSION_TYPES).nullable().default(null),
   status: z.enum(MISSION_STATUSES).default('draft'),
   is_priority: z.boolean().default(false),
+  is_founding_mission: z.boolean().default(false),
+  is_repeatable: z.boolean().default(true),
   sort_order: z.coerce.number().default(0),
+  min_level: z.coerce.number().int().min(0).nullable().default(null),
+  min_territory_cells: z.coerce.number().int().min(0).nullable().default(null),
+  prerequisite_mission_id: z.string().nullable().default(null),
+  story_season: z.coerce.number().int().min(1).nullable().default(null),
+  story_chapter: z.coerce.number().int().min(1).nullable().default(null),
+  chapter_summary_template: z.string().nullable().default(null),
 });
 type MissionForm = z.infer<typeof missionSchema>;
 
@@ -162,24 +181,33 @@ export default function MissionsPage() {
 
   function openCreate() {
     setEditing(null);
-    form.reset({ title: '', description: '', difficulty: undefined, estimated_time: 0, estimated_distance: 0, locomotion_type: null, status: 'draft', sort_order: 0, is_priority: false });
+    form.reset({ title: '', description: '', difficulty: undefined, estimated_time: 0, estimated_distance: 0, locomotion_type: null, mission_type: null, status: 'draft', sort_order: 0, is_priority: false, is_founding_mission: false, is_repeatable: true, min_level: null, min_territory_cells: null, prerequisite_mission_id: null, story_season: null, story_chapter: null, chapter_summary_template: null });
     parseRewards(null);
     setDialogOpen(true);
   }
 
   function openEdit(m: Mission) {
     setEditing(m);
+    const mr = m as unknown as Record<string, unknown>;
     form.reset({
-
       title: m.title,
       description: m.description ?? '',
       difficulty: DIFFICULTY_LEVELS.includes(m.difficulty as typeof DIFFICULTY_LEVELS[number]) ? m.difficulty as typeof DIFFICULTY_LEVELS[number] : undefined,
       estimated_time: m.estimated_time ? parseInt(m.estimated_time, 10) || 0 : 0,
       estimated_distance: m.estimated_distance ?? 0,
       locomotion_type: LOCOMOTION_TYPES.includes(m.locomotion_type as typeof LOCOMOTION_TYPES[number]) ? m.locomotion_type as typeof LOCOMOTION_TYPES[number] : null,
+      mission_type: MISSION_TYPES.includes(mr.mission_type as MissionType) ? mr.mission_type as MissionType : null,
       status: MISSION_STATUSES.includes(m.status as typeof MISSION_STATUSES[number]) ? m.status as typeof MISSION_STATUSES[number] : 'draft',
       is_priority: m.is_priority,
+      is_founding_mission: mr.is_founding_mission as boolean ?? false,
+      is_repeatable: mr.is_repeatable as boolean ?? true,
       sort_order: m.sort_order,
+      min_level: mr.min_level as number | null ?? null,
+      min_territory_cells: mr.min_territory_cells as number | null ?? null,
+      prerequisite_mission_id: mr.prerequisite_mission_id as string | null ?? null,
+      story_season: mr.story_season as number | null ?? null,
+      story_chapter: mr.story_chapter as number | null ?? null,
+      chapter_summary_template: mr.chapter_summary_template as string | null ?? null,
     });
     parseRewards(m.rewards as MissionRewards | null);
     setDialogOpen(true);
@@ -230,6 +258,9 @@ export default function MissionsPage() {
       const payload = {
         ...values,
         estimated_time: `${values.estimated_time} min`,
+        min_level: values.min_level ?? null,
+        min_territory_cells: values.min_territory_cells ?? null,
+        prerequisite_mission_id: values.prerequisite_mission_id ?? null,
         rewards: {
           xp: parseInt(rewardsXp, 10) || 0,
           gold: parseInt(rewardsGold, 10) || 0,
@@ -297,20 +328,42 @@ export default function MissionsPage() {
               <TableHead>Type</TableHead>
               <TableHead>Difficulty</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Gating</TableHead>
               <TableHead>Sort</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {missions.map((m) => (
+            {missions.map((m) => {
+              const mr = m as unknown as Record<string, unknown>;
+              const isFoundingMission = mr.is_founding_mission as boolean;
+              const minLevel = mr.min_level as number | null;
+              const minCells = mr.min_territory_cells as number | null;
+              const gatingParts: string[] = [];
+              if (minLevel) gatingParts.push(`Lvl ${minLevel}`);
+              if (minCells) gatingParts.push(`${minCells} cells`);
+              return (
               <TableRow key={m.id}>
-                <TableCell className="font-medium">{m.title}</TableCell>
-                <TableCell className="capitalize">{m.locomotion_type?.replace('_', ' / ') ?? '—'}</TableCell>
+                <TableCell className="font-medium">
+                  <span>{m.title}</span>
+                  {isFoundingMission && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">FOUNDING</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {mr.mission_type
+                    ? <span className="px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-medium capitalize">{String(mr.mission_type).replace('_', ' ')}</span>
+                    : <span className="text-muted-foreground">{m.locomotion_type?.replace('_', ' / ') ?? '—'}</span>
+                  }
+                </TableCell>
                 <TableCell className="capitalize">{m.difficulty}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[m.status] ?? 'bg-gray-100 text-gray-600'}`}>
                     {m.status}
                   </span>
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {gatingParts.length > 0 ? gatingParts.join(' · ') : '—'}
                 </TableCell>
                 <TableCell>{m.sort_order}</TableCell>
                 <TableCell className="text-right space-x-2">
@@ -321,10 +374,11 @@ export default function MissionsPage() {
                   <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(m)}>Delete</Button>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {missions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">No missions yet.</TableCell>
+                <TableCell colSpan={8} className="text-center text-muted-foreground">No missions yet.</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -350,6 +404,24 @@ export default function MissionsPage() {
                       <FormItem className="col-span-2">
                         <FormLabel>Title</FormLabel>
                         <FormControl><Input {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="mission_type" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mission Type</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(v === '_none' ? null : v)}
+                          value={field.value ?? '_none'}
+                        >
+                          <FormControl><SelectTrigger><SelectValue placeholder="General" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="_none">General</SelectItem>
+                            {MISSION_TYPES.map((t) => (
+                              <SelectItem key={t} value={t}>{MISSION_TYPE_LABELS[t]}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
@@ -383,7 +455,7 @@ export default function MissionsPage() {
                     )} />
                     <FormField control={form.control} name="locomotion_type" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Type</FormLabel>
+                        <FormLabel>Locomotion Type</FormLabel>
                         <Select
                           onValueChange={(v) => field.onChange(v === '_none' ? null : v)}
                           value={field.value ?? '_none'}
@@ -428,16 +500,118 @@ export default function MissionsPage() {
                         <FormLabel className="!mt-0">Priority</FormLabel>
                       </FormItem>
                     )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Description</FormLabel>
+                    <FormField control={form.control} name="is_founding_mission" render={({ field }) => (
+                      <FormItem className="flex items-center gap-2 pt-6">
                         <FormControl>
-                          <Textarea rows={3} {...field} />
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                         </FormControl>
+                        <FormLabel className="!mt-0">Founding Mission</FormLabel>
+                      </FormItem>
+                    )} />
+                    {form.watch('mission_type') !== 'story' && (
+                      <FormField control={form.control} name="is_repeatable" render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 pt-6">
+                          <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                          <FormLabel className="!mt-0">Repeatable</FormLabel>
+                        </FormItem>
+                      )} />
+                    )}
+                  </div>
+
+                  {/* ── Story Fields ────────────────────────────────────────── */}
+                  {form.watch('mission_type') === 'story' && (
+                    <div className="mt-4 rounded-md border p-3 space-y-3 border-amber-500/40 bg-amber-500/5">
+                      <p className="text-xs font-medium text-amber-600 uppercase tracking-wide">Story Chapter Fields</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField control={form.control} name="story_season" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Season</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="1" placeholder="1" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name="story_chapter" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Chapter</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="1" placeholder="1" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                      <FormField control={form.control} name="chapter_summary_template" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chapter Summary Template</FormLabel>
+                          <FormControl>
+                            <Textarea rows={3} placeholder="Summary shown after completion. Use {distance} and {time} as placeholders." {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value || null)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                    </div>
+                  )}
+
+                  {/* ── Progression Gating ────────────────────────────────── */}
+                  <div className="mt-4 rounded-md border p-3 space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Progression Gating</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField control={form.control} name="min_level" render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Min Level</FormLabel>
+                          <FormControl>
+                            <Input type="number" min="0" placeholder="None" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )} />
+                      {form.watch('mission_type') !== 'story' && (
+                        <FormField control={form.control} name="min_territory_cells" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Min Territory Cells</FormLabel>
+                            <FormControl>
+                              <Input type="number" min="0" placeholder="None" {...field} value={field.value ?? ''} onChange={(e) => field.onChange(e.target.value === '' ? null : e.target.value)} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                      )}
+                    </div>
+                    <FormField control={form.control} name="prerequisite_mission_id" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Prerequisite Mission</FormLabel>
+                        <Select
+                          onValueChange={(v) => field.onChange(v === '_none' ? null : v)}
+                          value={field.value ?? '_none'}
+                        >
+                          <FormControl><SelectTrigger><SelectValue placeholder="None" /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="_none">None</SelectItem>
+                            {missions
+                              .filter((m) => m.id !== editing?.id)
+                              .map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )} />
                   </div>
+
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Description / Narrative</FormLabel>
+                      <FormControl>
+                        <Textarea rows={4} placeholder={form.watch('mission_type') === 'story' ? 'Immersive mission briefing text shown to the runner…' : 'Mission description…'} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
                 </TabsContent>
 
                 <TabsContent value="rewards" className="pt-3 space-y-4">
