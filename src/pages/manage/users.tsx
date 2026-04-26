@@ -400,7 +400,7 @@ export default function UsersPage() {
     setSeedMissionsLoading(true);
     try {
       const data = await apiFetch<AdminMission[]>('/api/admin/missions');
-      const published = data.filter((m) => m.status === 'published');
+      const published = data.filter((m) => m.status === 'active');
       setSeedMissions(published);
       setSelectedMissionIds(new Set(published.map((m) => m.id)));
     } catch (e: unknown) {
