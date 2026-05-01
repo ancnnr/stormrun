@@ -46,7 +46,10 @@ const NAV_GROUPS = [
       { id: 'boot-login', label: 'Boot & Login' },
       { id: 'onboarding', label: 'Onboarding' },
       { id: 'mission-hub', label: 'Mission Hub' },
-      { id: 'map', label: 'Map' },
+      { id: 'mission-types', label: 'Mission Types' },
+      { id: 'weekly-missions', label: 'Weekly Missions' },
+      { id: 'story-missions', label: 'Story Missions' },
+      { id: 'map', label: 'Map & Decay' },
       { id: 'prep-bay', label: 'Prep Bay' },
       { id: 'community', label: 'Community' },
       { id: 'profile', label: 'Profile' },
@@ -65,6 +68,9 @@ const NAV_GROUPS = [
       { id: 'admin-items', label: 'Items' },
       { id: 'admin-encouragement', label: 'Encouragement Audio' },
       { id: 'admin-bulk-grant', label: 'Bulk Grant' },
+      { id: 'admin-weekly-missions', label: 'Weekly Missions' },
+      { id: 'admin-story-missions', label: 'Story Missions' },
+      { id: 'admin-outposts', label: 'Outposts' },
       { id: 'admin-analytics', label: 'Geo Analytics' },
     ],
   },
@@ -460,6 +466,95 @@ function RoutePreviewWithHexes() {
   );
 }
 
+// ─── Mission type legend ──────────────────────────────────────────────────────
+
+function MissionTypeLegend() {
+  const types = [
+    { label: 'Territory Expansion', sub: 'Available from start', fill: 'rgba(0,255,136,0.2)', stroke: '#00FF88', icon: '🛡', textColor: '#00FF88' },
+    { label: 'Outpost Establishment', sub: 'Unlocks at Level 3', fill: 'rgba(251,146,60,0.2)', stroke: '#fb923c', icon: '⚑', textColor: '#fb923c' },
+    { label: 'Scouting', sub: 'Unlocks at Level 2', fill: 'rgba(168,85,247,0.2)', stroke: '#a855f7', icon: '◉', textColor: '#a855f7' },
+    { label: 'Supply Run', sub: 'Unlocks at Level 4', fill: 'rgba(234,179,8,0.2)', stroke: '#eab308', icon: '▣', textColor: '#eab308' },
+    { label: 'Story Mission', sub: 'Level-gated, permanent', fill: 'rgba(99,102,241,0.2)', stroke: '#6366f1', icon: '✦', textColor: '#6366f1' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
+      {types.map((t) => (
+        <div
+          key={t.label}
+          style={{
+            background: t.fill,
+            border: `1.5px solid ${t.stroke}`,
+            borderRadius: 8,
+            padding: '10px 14px',
+            minWidth: 160,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 4,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14 }}>{t.icon}</span>
+            <span style={{ color: t.textColor, fontWeight: 700, fontSize: 12, fontFamily: 'monospace', letterSpacing: 1 }}>
+              {t.label.toUpperCase()}
+            </span>
+          </div>
+          <span style={{ color: '#8B94A8', fontSize: 11 }}>{t.sub}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Hex decay states diagram ─────────────────────────────────────────────────
+
+function HexDecayStates() {
+  // Three isolated hexes side by side showing the 3 decay states
+  // Flat-top hexes, r=28, w=56, h=48.5
+  // Centers: (60, 70), (170, 70), (280, 70)
+  return (
+    <div style={{
+      display: 'inline-block',
+      border: '1px solid rgba(255,255,255,0.08)',
+      borderRadius: 8,
+      overflow: 'hidden',
+      background: '#161B2E',
+    }}>
+      <svg width="360" height="140" viewBox="0 0 360 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="360" height="140" fill="#161B2E"/>
+
+        {/* State 1 — Healthy (solid green) */}
+        <polygon
+          points="60,28 88,44 88,76 60,92 32,76 32,44"
+          fill="rgba(0,255,136,0.25)" stroke="#00FF88" strokeWidth="1.5"
+        />
+        <text x="60" y="68" textAnchor="middle" fill="#00FF88" fontSize="9" fontFamily="monospace" fontWeight="700">OWNED</text>
+        <text x="60" y="112" textAnchor="middle" fill="rgba(0,255,136,0.7)" fontSize="10" fontFamily="monospace">HEALTHY</text>
+        <text x="60" y="126" textAnchor="middle" fill="#8B94A8" fontSize="9" fontFamily="monospace">0–7 days</text>
+
+        {/* State 2 — At Risk (orange border + countdown) */}
+        <polygon
+          points="180,28 208,44 208,76 180,92 152,76 152,44"
+          fill="rgba(0,255,136,0.12)" stroke="rgba(255,120,0,0.9)" strokeWidth="2.5"
+        />
+        <text x="180" y="63" textAnchor="middle" fill="rgba(0,255,136,0.6)" fontSize="9" fontFamily="monospace">OWNED</text>
+        {/* Countdown badge */}
+        <rect x="165" y="70" width="30" height="14" rx="3" fill="rgba(255,100,0,0.85)" stroke="rgba(255,60,0,1)" strokeWidth="1"/>
+        <text x="180" y="81" textAnchor="middle" fill="#FFFFFF" fontSize="9" fontFamily="monospace" fontWeight="700">3d</text>
+        <text x="180" y="112" textAnchor="middle" fill="rgba(255,120,0,0.9)" fontSize="10" fontFamily="monospace">AT RISK</text>
+        <text x="180" y="126" textAnchor="middle" fill="#8B94A8" fontSize="9" fontFamily="monospace">7–14 days</text>
+
+        {/* State 3 — Lost (empty frontier) */}
+        <polygon
+          points="300,28 328,44 328,76 300,92 272,76 272,44"
+          fill="rgba(0,255,136,0.03)" stroke="rgba(0,255,136,0.2)" strokeWidth="1"
+        />
+        <text x="300" y="112" textAnchor="middle" fill="rgba(0,255,136,0.35)" fontSize="10" fontFamily="monospace">LOST</text>
+        <text x="300" y="126" textAnchor="middle" fill="#8B94A8" fontSize="9" fontFamily="monospace">14+ days</text>
+      </svg>
+    </div>
+  );
+}
+
 // ─── Route type diagrams ──────────────────────────────────────────────────────
 
 function RouteTypeDiagrams() {
@@ -614,9 +709,135 @@ function MissionHub() {
   );
 }
 
+function MissionTypes() {
+  return (
+    <DocSection id="mission-types" kicker="05 · MISSIONS" title="Mission Types">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        StormRun has five distinct mission types. Four of them reset every Sunday as weekly slots; the fifth (Story) is permanently unlocked once prerequisites are met.
+      </p>
+
+      <MissionTypeLegend />
+
+      <h3 className="font-semibold text-base mt-8 mb-3">Type reference</h3>
+      <KvTable rows={[
+        ['Territory Expansion', 'Claim a minimum number of new hexes in a single run. Available from the start, no unlock required. Run into frontier or danger-zone hexes to count. All hexes along the route also have their decay clock refreshed.'],
+        ['Outpost Establishment', 'Run to a player-chosen destination in the frontier or danger zone and plant a beacon. Unlocks at Level 3 with ≥ 10 owned hexes. Max 3 active outposts at once. Outposts persist across weekly resets and anchor a decay-protection radius.'],
+        ['Scouting', 'Venture beyond the red danger zone (k > 4 rings from owned territory) for at least 500 m. Unlocks at Level 2 with ≥ 5 owned hexes. On completion, the route is analysed and Points of Interest are added to the territory map.'],
+        ['Supply Run', 'Run from shelter to an active outpost (checkpoint) and back. Unlocks at Level 4 with ≥ 1 active outpost. Resets the outpost\'s decay-protection clock and refreshes all hexes along the route.'],
+        ['Story Mission', 'Narrative episodes organized into Seasons and Chapters. Unlocked by level alone — no territory requirement. Once a chapter unlocks it stays available until completed. Chapters cannot be replayed.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Minimum new-hex thresholds (Territory Expansion)</h3>
+      <KvTable rows={[
+        ['Level 1–3', '3 new hexes'],
+        ['Level 4–6', '5 new hexes'],
+        ['Level 7–10', '8 new hexes'],
+        ['Level 11+', '12 new hexes'],
+      ]} />
+
+      <Callout>
+        Completing a <strong>Territory Expansion</strong> or <strong>Supply Run</strong> each week does double duty: it earns the weekly reward <em>and</em> refreshes the decay clock on every hex the route passes through.
+      </Callout>
+    </DocSection>
+  );
+}
+
+function WeeklyMissions() {
+  return (
+    <DocSection id="weekly-missions" kicker="06 · WEEKLY" title="Weekly Missions">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        Each week four mission slots refresh in the Mission Hub. Complete all four for the full weekly reward pool. Story missions are separate and not part of the weekly cycle.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/mission-hub-weekly.png', caption: 'Mission Hub · weekly slots' },
+        { src: '/docs/app/mission-hub-chronicle.png', caption: 'Mission Hub · Chronicle' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Slot states</h3>
+      <KvTable rows={[
+        ['Available', 'Ready to start. Tap to see objectives and hit Begin Mission.'],
+        ['In Progress', 'Mission initiated — destination set or outpost selected. Run not yet completed.'],
+        ['Completed', 'Run finished and validated. Reward claimed. Slot greyed out until next reset.'],
+        ['Locked', 'Unlock requirements not yet met (level or outpost count). Shows the requirement.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Weekly reset</h3>
+      <KvTable rows={[
+        ['Reset time', 'Every Sunday at 11:59 PM in the player\'s local timezone.'],
+        ['What resets', 'All four weekly slots (Territory Expansion, Outpost Establishment, Scouting, Supply Run). Outpost weekly-supply cooldowns also clear.'],
+        ['What persists', 'Active outposts, story mission progress, discovered scouting Points of Interest.'],
+        ['Mid-run reset', 'If a weekly slot resets while a run is in progress, the run still counts for the old week when completed.'],
+        ['One completion per slot', 'Only one Territory Expansion (etc.) per week. Completing it Monday means no second shot until Sunday reset.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Reward targets (full weekly completion)</h3>
+      <KvTable rows={[
+        ['XP', '~500–800 XP / week (scales with level)'],
+        ['Gold', '~150–250 gold / week'],
+        ['Items', '3–5 items / week (mix of common and uncommon)'],
+      ]} />
+
+      <Callout variant="warn">
+        The <strong>Supply Run</strong> slot only appears when the player has at least one active outpost. If no outpost exists, that slot shows as locked with the message "Build a forward base first."
+      </Callout>
+    </DocSection>
+  );
+}
+
+function StoryMissions() {
+  return (
+    <DocSection id="story-missions" kicker="07 · STORY" title="Story Missions">
+      <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
+        Story missions are the narrative backbone of StormRun. They are organized into <strong>Seasons → Chapters</strong>, unlocked permanently by level, and played exactly once. Completing a chapter is a permanent entry in the player's Chronicle.
+      </p>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/story-briefing.png', caption: 'Story mission · briefing' },
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">How unlocks work</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Story missions are gated by <strong>level only</strong> — no territory requirement. This keeps the narrative accessible to runners in dense cities or with limited running range who may accumulate fewer hexes. Level directly reflects time and effort invested, so it's the fair unlock gate.
+      </p>
+      <p className="text-sm text-muted-foreground mb-4">
+        Each chapter also requires the <strong>previous chapter</strong> to be completed first (except Chapter 1). Once a chapter's level requirement is met and its prerequisite is done, it appears in the Mission Hub's Chronicle section and stays available until completed.
+      </p>
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Season 1 — "The Awakening"</h3>
+      <KvTable rows={[
+        ['Ch 1 · Origin Point', 'Level 1 · No prereq — You wake up. The shelter briefing. The storm\'s first appearance. (~30 min)'],
+        ['Ch 2 · First Contact', 'Level 2 · Requires Ch 1 — A faint signal from the east. Someone out there is alive. (~30–45 min)'],
+        ['Ch 3 · The Supply Cache', 'Level 4 · Requires Ch 2 — Pre-collapse emergency depot. Enough food for three months — if you can reach it. (~35–55 min)'],
+        ['Ch 4 · Dead Frequency', 'Level 6 · Requires Ch 3 — The signal went quiet. You have the last known coordinates and one shot. (~40–60 min)'],
+        ['Ch 5 · The Enclave', 'Level 8 · Requires Ch 4 — Another settlement. They\'re not friendly. Not yet. (~50–70 min)'],
+        ['Ch 6 · Convergence', 'Level 10 · Requires Ch 5 — The storm is consolidating. Something is at its center. Someone put it there. (~60–90 min)'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-3">Run experience</h3>
+      <KvTable rows={[
+        ['Route', 'Player chooses their own path — story missions have no route constraints. The narrative runs on distance/time/pace triggers.'],
+        ['Audio', '8–15 audio events per chapter: radio transmissions, survivor journals, field reports. Full Audrey narration.'],
+        ['Duration', '30–90 minutes depending on chapter. Longer than standard missions by design.'],
+        ['Completion', 'A "Chapter Complete" screen shows the narrative summary card and unique reward. A permanent journal entry is added to the Chronicle.'],
+        ['Replay', 'Story missions cannot be replayed once completed.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Locked chapter previews</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        In the Chronicle section of Mission Hub, locked chapters are always visible. The <em>next</em> locked chapter shows its title, a one-line atmospheric teaser, and a level progress bar. Chapters beyond the next show only title and level requirement — preserving discovery.
+      </p>
+
+      <Callout>
+        <strong>Story rewards are higher than weekly missions</strong> — roughly 2× the XP of a Territory Expansion run, plus a unique cosmetic item not available anywhere else.
+      </Callout>
+    </DocSection>
+  );
+}
+
 function MapTab() {
   return (
-    <DocSection id="map" kicker="05 · TAB" title="Map">
+    <DocSection id="map" kicker="08 · TAB" title="Map">
       <p className="text-muted-foreground mb-4">
         A dark-themed map centered on the Shelter pin. Territory is rendered using <strong>Uber H3 hexagonal cells</strong> at resolution 9 — each hex is approximately 174 m across (~0.105 km²). Claimed hexes appear as green polygons; adjacent unclaimed cells glow dimly as the frontier edge. Friends with visible territory appear as purple hex clusters.
       </p>
@@ -633,6 +854,31 @@ function MapTab() {
         ['Active location', 'Cyan pulse dot tracking your live GPS position. Updates during a run.'],
         ['Recenter button', 'Bottom-right button snaps the map back to your current location.'],
         ['Active friends chip', 'Shows the count of friends currently running or online when the count is greater than 0.'],
+        ['Outpost pins', 'Active outposts appear as beacon pins with an animated pulse ring. Dormant outposts show a faded pin with a warning indicator.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Hex decay states</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Perimeter hexes — those touching the unclaimed frontier — decay if not run through. Interior hexes (fully surrounded by owned hexes on all six sides) are self-sustaining and never decay. The shelter hex never decays.
+      </p>
+
+      <div className="my-4">
+        <HexDecayStates />
+      </div>
+
+      <KvTable rows={[
+        ['Healthy', 'Solid green fill and stroke. Run through within the last 7 days, or protected by an active outpost\'s k=2 radius.'],
+        ['At Risk', 'Green fill, orange/red border, countdown badge (e.g. "3d"). 7–14 days since last run through. Will be lost if not refreshed.'],
+        ['Lost', 'Hex is deleted and reverts to unclaimed frontier. 14+ days without a run. Outpost protection prevents this.'],
+      ]} />
+
+      <Callout variant="warn">
+        Only <strong>perimeter hexes</strong> can decay — interior hexes are safe. The bigger your territory grows, the longer its perimeter edge becomes, requiring more active maintenance or strategic outpost placement.
+      </Callout>
+
+      <PhoneGallery items={[
+        { src: '/docs/app/map-decay.png', caption: 'Map · at-risk hexes (orange border)' },
+        { src: '/docs/app/map-outpost.png', caption: 'Map · active outpost beacon pin' },
       ]} />
     </DocSection>
   );
@@ -640,7 +886,7 @@ function MapTab() {
 
 function PrepBay() {
   return (
-    <DocSection id="prep-bay" kicker="06 · TAB" title="Prep Bay">
+    <DocSection id="prep-bay" kicker="09 · TAB" title="Prep Bay">
       <p className="text-muted-foreground mb-4">
         Loadout management. Runners equip consumables for runs, manage perk slots, and track XP progression.
       </p>
@@ -664,7 +910,7 @@ function PrepBay() {
 
 function Community() {
   return (
-    <DocSection id="community" kicker="07 · TAB" title="Community">
+    <DocSection id="community" kicker="10 · TAB" title="Community">
       <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
         The Community tab is the social hub — friends, incoming requests, and a feed of recent friend activity. Three segment tabs open left-to-right: Activity → Friends → Requests. A numeric badge on the tab bar icon appears when there are unread friend requests.
       </p>
@@ -711,7 +957,7 @@ function Community() {
 
 function Profile() {
   return (
-    <DocSection id="profile" kicker="08 · TAB" title="Profile">
+    <DocSection id="profile" kicker="11 · TAB" title="Profile">
       <p className="text-muted-foreground mb-4">
         Runner stats, achievement tracking, and run history. Also the entry point for settings.
       </p>
@@ -743,7 +989,7 @@ function Profile() {
 
 function Programs() {
   return (
-    <DocSection id="programs" kicker="09 · PROGRAMS" title="Programs">
+    <DocSection id="programs" kicker="12 · PROGRAMS" title="Programs">
       <p className="text-muted-foreground mb-4">
         Structured training programs containing ordered sessions. Each session is a sequence of missions played over multiple runs, designed around a fitness or narrative arc.
       </p>
@@ -766,7 +1012,7 @@ function Programs() {
 
 function RunExperience() {
   return (
-    <DocSection id="run" kicker="10 · RUN EXPERIENCE" title="Live & Simulated Runs">
+    <DocSection id="run" kicker="13 · RUN EXPERIENCE" title="Live & Simulated Runs">
       <p className="text-lg text-muted-foreground mb-4 leading-relaxed">
         The run is the core product. Two modes: <strong>Live</strong> (GPS-tracked outdoors) and <strong>Simulated</strong> (timer-based, no GPS). Both play the same mission audio, but live mode reacts to actual pace and location.
       </p>
@@ -876,11 +1122,27 @@ function AdminMissions() {
       ]} />
 
       <KvTable rows={[
-        ['Mission fields', 'Title, type, description, objectives, rewards, difficulty, estimated time/distance, hazards, priority flag, sort order.'],
+        ['Mission fields', 'Title, mission type, description, objectives, rewards, difficulty, estimated time/distance, hazards, priority flag, sort order.'],
         ['Audio events', 'Ordered sequence of audio cues attached to a mission. Each event has a trigger type (distance, time, pace) and a trigger value.'],
         ['Trigger types', 'distance_km (fires when runner reaches X km), time_seconds (fires at X seconds elapsed), pace events.'],
         ['Priority', 'Toggle is_priority to pin the mission to the top of Mission Hub for all users.'],
         ['Sort order', 'Integer; lower numbers appear higher in side ops lists.'],
+      ]} />
+
+      <h3 className="font-semibold text-base mt-6 mb-2">Mission type fields</h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        The <strong>Mission Type</strong> dropdown changes which additional fields are shown in the editor.
+      </p>
+      <KvTable rows={[
+        ['territory_expansion', 'Min New Cells — minimum hexes that must be claimed in one run (scales with player level if left null).'],
+        ['outpost_establishment', 'Max Distance (km) — maximum straight-line distance from shelter to the destination.'],
+        ['scouting', 'Min Unknown Distance (m) — minimum meters of GPS track that must be beyond the k>4 danger zone.'],
+        ['supply_run', 'No extra fields — route validation (shelter → outpost checkpoint → shelter) is always applied.'],
+        ['story', 'Story Season, Story Chapter, Chapter Summary Template, Prerequisite Mission. Is Repeatable is forced to false.'],
+      ]} />
+
+      <AdminGallery items={[
+        { src: '/docs/admin/mission-create-type.png', caption: 'Mission create · mission_type dropdown and type-specific fields' },
       ]} />
     </DocSection>
   );
@@ -1016,9 +1278,84 @@ function AdminBulkGrant() {
   );
 }
 
+function AdminWeeklyMissions() {
+  return (
+    <DocSection id="admin-weekly-missions" kicker="ADMIN · 09" title="Weekly Missions">
+      <p className="text-muted-foreground mb-4">
+        An overview of weekly mission engagement across all users. Shows completion stats by mission type for the current week, with a drill-down per user.
+      </p>
+
+      <AdminGallery items={[
+        { src: '/docs/admin/weekly-missions-1.png', caption: 'Weekly missions · completion overview by type' },
+        { src: '/docs/admin/weekly-missions-drill.png', caption: 'Weekly missions · user drill-down sheet' },
+      ]} />
+
+      <KvTable rows={[
+        ['Overview table', 'One row per mission type. Columns: type, total slots created, completed, in-progress, pending. Refreshes on page load.'],
+        ['Completion rate', 'Completed ÷ total slots. Low rates on a particular type surface tuning opportunities (too hard, too far, not visible enough).'],
+        ['User drill-down', 'Click any row to open a sheet. Search for a specific user to see their slot history across all weeks — iso_week, type, status, completed_at.'],
+        ['Weekly scope', 'Overview is current week only. The user drill-down shows all historical weeks.'],
+      ]} />
+    </DocSection>
+  );
+}
+
+function AdminStoryMissions() {
+  return (
+    <DocSection id="admin-story-missions" kicker="ADMIN · 10" title="Story Missions">
+      <p className="text-muted-foreground mb-4">
+        View and manage all story missions, organized by season and chapter. This page is read-only — editing a story mission (audio events, chapter summary, unlock requirements) is done via the main Missions editor.
+      </p>
+
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/story-missions-1.png', caption: 'Story missions · Season 1 chapter list' },
+      ]} />
+
+      <KvTable rows={[
+        ['Season grouping', 'Missions are grouped by story_season. Each season is collapsible. Chapters are ordered by story_chapter within the season.'],
+        ['Chapter row', 'Shows: chapter number, title, level requirement, prerequisite mission, difficulty, estimated distance, status (draft/active/archived).'],
+        ['Edit link', 'Each row links to the full mission editor (/manage/missions) where audio events, chapter summary template, and all other fields can be modified.'],
+        ['Prerequisite chain', 'The "Prereq" column shows the title of the previous chapter (or "None" for Ch 1). The chain must be unbroken for chapters to unlock in the app.'],
+        ['Status', 'Only "active" story missions are visible to players. Use "draft" while authoring and "archived" to retire a chapter without deleting it.'],
+      ]} />
+
+      <Callout>
+        Story mission audio events are configured in the main Missions editor (same as any other mission). Each chapter typically has 8–15 audio events with triggers: <code>route_start</code>, <code>distance_pct</code>, <code>time_elapsed</code>, and <code>pace_event</code>.
+      </Callout>
+    </DocSection>
+  );
+}
+
+function AdminOutposts() {
+  return (
+    <DocSection id="admin-outposts" kicker="ADMIN · 11" title="Outposts">
+      <p className="text-muted-foreground mb-4">
+        A table of all outposts across all users. Use this page to monitor engagement health — outposts approaching dormancy or automatic decommission indicate players who may be disengaging with the weekly supply run loop.
+      </p>
+
+      <AdminGalleryWide items={[
+        { src: '/docs/admin/outposts-1.png', caption: 'Outposts · all-user table with status filter' },
+      ]} />
+
+      <KvTable rows={[
+        ['Status filter', 'Filter by active, dormant, or decommissioned. Default shows active only.'],
+        ['Days since resupply', 'Computed from last_resupplied_at (or established_at if never resupplied). Rows approaching dormancy (≥ 5 days) are highlighted amber; approaching auto-decommission (≥ 12 days) are highlighted red.'],
+        ['Outpost status lifecycle', 'active → (7 days without resupply) → dormant → (7 more days) → auto-decommissioned. Player can also manually decommission from the app at any time.'],
+        ['Supply run count', 'Lifetime number of successful supply runs to this outpost. At 5 resupplies the outpost displays as "established" in the app; at 10 it shows as "fortified."'],
+        ['Decay protection', 'Active outposts protect hexes within k=2 rings (~19 hexes) from decay. Dormant outposts provide no protection. This is shown in the "Protection" column.'],
+        ['Pagination', '50 outposts per page. Use status filter to narrow results.'],
+      ]} />
+
+      <Callout variant="warn">
+        Dormant outposts (<strong>amber rows</strong>) will auto-decommission if the player does not complete a supply run within 7 more days. The decay protection radius drops immediately on dormancy — frontier hexes around that outpost become vulnerable. This can be used to identify players who need a nudge.
+      </Callout>
+    </DocSection>
+  );
+}
+
 function AdminAnalytics() {
   return (
-    <DocSection id="admin-analytics" kicker="ADMIN · 09" title="Geo Analytics">
+    <DocSection id="admin-analytics" kicker="ADMIN · 12" title="Geo Analytics">
       <p className="text-muted-foreground mb-4">
         A heatmap and trail visualization of all runs, overlaid on a map. Shows where runners are actually going — useful for mission route design and identifying dead zones.
       </p>
@@ -1142,7 +1479,7 @@ export default function DocsPage() {
           {/* Cover */}
           <div className="mb-16 pb-10 border-b">
             <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-3">
-              FUNCTIONAL DOCUMENTATION · v0.1
+              FUNCTIONAL DOCUMENTATION · v0.2
             </p>
             <h1 className="text-4xl font-bold mb-4">StormRun</h1>
             <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed mb-6">
@@ -1151,8 +1488,8 @@ export default function DocsPage() {
             <div className="flex flex-wrap gap-6 text-sm">
               {[
                 ['Platform', 'Android (Expo RN)'],
-                ['Version', '0.1.0 · build 42'],
-                ['Last updated', 'Apr 20 · 2026'],
+                ['Version', '0.2.0 · mission progression'],
+                ['Last updated', 'Apr 29 · 2026'],
                 ['Access', 'Logged-in admin / manager'],
               ].map(([k, v]) => (
                 <div key={k} className="flex flex-col gap-0.5">
@@ -1167,6 +1504,9 @@ export default function DocsPage() {
           <BootLogin />
           <Onboarding />
           <MissionHub />
+          <MissionTypes />
+          <WeeklyMissions />
+          <StoryMissions />
           <MapTab />
           <PrepBay />
           <Community />
@@ -1188,6 +1528,9 @@ export default function DocsPage() {
           <AdminItems />
           <AdminEncouragement />
           <AdminBulkGrant />
+          <AdminWeeklyMissions />
+          <AdminStoryMissions />
+          <AdminOutposts />
           <AdminAnalytics />
 
           <div className="border-t mt-16 pt-8 text-sm text-muted-foreground">
